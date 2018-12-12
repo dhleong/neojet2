@@ -1,0 +1,4 @@
+rootProject.name = 'neojet'
+include ':neojet'
+include ':neovim'
+

@@ -1,0 +1,41 @@
+allprojects {
+
+    repositories {
+        mavenCentral()
+    }
+
+    ext {
+        neojet = [
+            group: "org.neojet",
+            version: "1.0-SNAPSHOT",
+        ]
+    }
+}
+
+ext.vs = [
+    msgpack: '0.8.16',
+    coroutines: '1.0.1',
+
+    test: [
+        assertk: '0.9',
+        junit: '4.12',
+    ],
+]
+
+ext.deps = [
+    kotlin: [
+        core: 'org.jetbrains.kotlin:kotlin-stdlib-jdk8',
+        coroutines: "org.jetbrains.kotlinx:kotlinx-coroutines-core:${vs.coroutines}",
+        corintegration: "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${vs.coroutines}",
+    ],
+
+    msgpack: [
+        core: "org.msgpack:msgpack-core:${vs.msgpack}",
+        jackson: "org.msgpack:jackson-dataformat-msgpack:${vs.msgpack}",
+    ],
+
+    test: [
+        assertk: "com.willowtreeapps.assertk:assertk:${vs.test.assertk}",
+        junit: "junit:junit:${vs.test.junit}",
+    ],
+]

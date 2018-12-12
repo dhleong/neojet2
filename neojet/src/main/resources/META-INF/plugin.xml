@@ -1,0 +1,48 @@
+<idea-plugin version="2">
+    <id>org.neojet</id>
+    <name>NeoJet</name>
+    <version>1.0</version>
+    <vendor url="http://github.com/dhleong/neojet">NeoJet</vendor>
+
+    <description><![CDATA[
+      A new kind of Jet.
+
+      NeoJet binds IntelliJ to Neovim
+    ]]></description>
+
+    <change-notes><![CDATA[
+      No changes yet. This is the initial release
+    ]]>
+    </change-notes>
+
+    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+    <idea-version since-build="143"/>
+
+    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <!--<extensions defaultExtensionNs="com.intellij">-->
+        <!--&lt;!&ndash; Add your extensions here &ndash;&gt;-->
+        <!--<fileEditorProvider implementation="org.neojet.NeojetEditorProvider"/>-->
+    <!--</extensions>-->
+
+    <application-components>
+        <!-- Add your application components here -->
+        <component>
+            <implementation-class>org.neojet.NJCore</implementation-class>
+        </component>
+    </application-components>
+
+    <project-components>
+        <!-- Add your project components here -->
+    </project-components>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+</idea-plugin>
+
