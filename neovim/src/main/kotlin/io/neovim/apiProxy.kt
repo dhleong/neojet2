@@ -31,7 +31,16 @@ inline fun <reified T> proxy(rpc: Rpc): T {
         // to Rpc#request, but this is simpler... for now
 
         runBlocking(continuation.context) {
-            rpc.request(info.name).result
+            val response = rpc.request(
+                method = info.name,
+                args = args.toList().dropLast(1)
+            )
+            when {
+                response.error != null -> {
+                    throw RuntimeException(response.error.toString())
+                }
+                else -> response.result ?: Unit
+            }
         }
     } as T
 }
