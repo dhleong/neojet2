@@ -46,7 +46,6 @@ fun String.toCamelCase() = StringBuilder().also { builder ->
 }.toString()
 
 fun TypeSpec.Builder.suppressUnusedWarnings() {
-//    @Suppress("unused")
     addAnnotation(AnnotationSpec.builder(Suppress::class).apply {
         addMember("%S", "unused")
     }.build())
