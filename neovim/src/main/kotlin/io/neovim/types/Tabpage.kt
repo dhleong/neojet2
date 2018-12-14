@@ -12,7 +12,7 @@ import io.neovim.impl.proxy
  */
 @Suppress("unused")
 @ApiExtensionType(id = 2)
-interface Tabpage {
+interface Tabpage : NeovimObject {
     @ApiMethod("nvim_tabpage_list_wins", since = 1)
     suspend fun listWins(): List<Window>
 
@@ -34,7 +34,7 @@ interface Tabpage {
     @ApiMethod("nvim_tabpage_is_valid", since = 1)
     suspend fun isValid(): Boolean
 
-    companion object {
-        fun create(rpc: Rpc, id: Long): Tabpage = proxy(rpc, id)
+    companion object : NeovimObject.Factory {
+        override fun create(rpc: Rpc, id: Long): Tabpage = proxy(rpc, id)
     }
 }

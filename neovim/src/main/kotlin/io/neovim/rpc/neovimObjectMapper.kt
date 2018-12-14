@@ -25,9 +25,9 @@ fun createNeovimObjectMapper(
     val factory = MessagePackFactory().apply {
         disable(JsonParser.Feature.AUTO_CLOSE_SOURCE)
         disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
-
-        // TODO extension types
     }
+
+    installNeovimExtensionTypes(rpc, factory, module)
 
     return ObjectMapper(factory).apply {
         disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)

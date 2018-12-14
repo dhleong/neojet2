@@ -12,7 +12,7 @@ import io.neovim.impl.proxy
  */
 @Suppress("unused")
 @ApiExtensionType(id = 0)
-interface Buffer {
+interface Buffer : NeovimObject {
     @ApiMethod("nvim_buf_line_count", since = 1)
     suspend fun lineCount(): Long
 
@@ -92,7 +92,7 @@ interface Buffer {
         lineEnd: Long
     )
 
-    companion object {
-        fun create(rpc: Rpc, id: Long): Buffer = proxy(rpc, id)
+    companion object : NeovimObject.Factory {
+        override fun create(rpc: Rpc, id: Long): Buffer = proxy(rpc, id)
     }
 }

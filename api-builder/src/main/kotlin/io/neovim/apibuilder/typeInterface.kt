@@ -5,6 +5,7 @@ import io.neovim.ApiExtensionType
 import io.neovim.Rpc
 import io.neovim.types.NeovimApiMetadata
 import io.neovim.types.NeovimApiTypeInfo
+import io.neovim.types.NeovimObject
 
 /**
  * @author dhleong
@@ -30,6 +31,8 @@ fun createTypeInterface(
             addMember("id = %L", typeInfo.id)
         }.build())
 
+        addSuperinterface(NeovimObject::class.java)
+
         apiInfo.functions.filter {
             it.isMethod
                 && it.name.startsWith(typeInfo.prefix)
@@ -39,10 +42,12 @@ fun createTypeInterface(
 
         addType(
             TypeSpec.companionObjectBuilder().apply {
+                addSuperinterface(NeovimObject.Factory::class)
                 addFunction(
                     FunSpec.builder("create").apply {
                         addParameter("rpc", Rpc::class)
                         addParameter("id", LONG)
+                        addModifiers(KModifier.OVERRIDE)
                         returns(className)
 
                         addStatement("""

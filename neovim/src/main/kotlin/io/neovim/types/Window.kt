@@ -12,7 +12,7 @@ import io.neovim.impl.proxy
  */
 @Suppress("unused")
 @ApiExtensionType(id = 1)
-interface Window {
+interface Window : NeovimObject {
     @ApiMethod("nvim_win_get_buf", since = 1)
     suspend fun getBuf(): Buffer
 
@@ -61,7 +61,7 @@ interface Window {
     @ApiMethod("nvim_win_is_valid", since = 1)
     suspend fun isValid(): Boolean
 
-    companion object {
-        fun create(rpc: Rpc, id: Long): Window = proxy(rpc, id)
+    companion object : NeovimObject.Factory {
+        override fun create(rpc: Rpc, id: Long): Window = proxy(rpc, id)
     }
 }

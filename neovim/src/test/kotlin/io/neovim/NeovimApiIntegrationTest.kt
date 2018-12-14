@@ -3,6 +3,8 @@ package io.neovim
 import assertk.assert
 import assertk.assertions.isInstanceOf
 import io.neovim.rpc.channels.EmbeddedChannel
+import io.neovim.types.Buffer
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -26,5 +28,20 @@ class NeovimApiIntegrationTest {
 
     @Test fun `Basic API calls work`() = runBlockingUnit {
         assert(api.getCurrentLine()).isInstanceOf(String::class.java)
+    }
+
+    @Test fun `Custom types get decoded`() = runBlockingUnit {
+        assert(api.getCurrentBuf()).isInstanceOf(Buffer::class.java)
+    }
+
+    @Test fun `Custom types get encoded`() = runBlockingUnit {
+        val buf = api.getCurrentBuf()
+        assert(buf).isInstanceOf(Buffer::class.java)
+
+        assert {
+            runBlocking {
+                api.setCurrentBuf(buf)
+            }
+        }.returnedValue { }
     }
 }

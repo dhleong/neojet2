@@ -17,12 +17,22 @@ inline fun <reified T> proxy(
     customTypeInstanceId: Long? = null
 ): T {
 
+    // extract method info lazily
     val methodInfo = mutableMapOf<Method, ApiMethodInfo>()
 
     return Proxy.newProxyInstance(
         T::class.java.classLoader,
         arrayOf(T::class.java)
     ) { _, method, args ->
+
+        if (method.name == "getId") {
+            // NOTE the id property is implemented as a getId() method
+            return@newProxyInstance customTypeInstanceId
+                ?: throw IllegalStateException(
+                    "No instance ID for ${T::class} to return for .id call"
+                )
+        }
+
         @Suppress("UNCHECKED_CAST")
         val continuation = args.last() as Continuation<Any>
 
