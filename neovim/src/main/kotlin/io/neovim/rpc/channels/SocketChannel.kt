@@ -21,7 +21,7 @@ class SocketChannel(
         socket.close()
     }
 
-    class Factory(
+    data class Factory(
         private val address: InetSocketAddress
     ) : NeovimChannel.Factory {
 

@@ -58,15 +58,24 @@ class Rpc internal constructor(
         }
     }
 
+    private val requestTypes = mutableMapOf<Long, Class<*>>()
+
     suspend fun request(
         method: String,
-        args: Any? = null
+        args: Any? = null,
+        resultType: Class<*>? = null
     ): ResponsePacket {
+
         val request = RequestPacket(
             requestId = ids.next(),
             method = method,
             args = args
         )
+
+        if (resultType != null) {
+            requestTypes[request.requestId] = resultType
+        }
+
         send(request)
 
         return firstPacketThat {
@@ -111,5 +120,21 @@ class Rpc internal constructor(
         }
 
         throw IllegalStateException("Never received a matching packet")
+    }
+
+    internal fun getExpectedTypeForRequest(requestId: Long): Class<*>? =
+        requestTypes.remove(requestId)
+
+    companion object {
+        fun create(channelFactory: NeovimChannel.Factory): Rpc {
+            try {
+                return Rpc(channelFactory.create())
+            } catch (e: Exception) {
+                throw IllegalArgumentException(
+                    "Unable to connect to Neovim via $channelFactory",
+                    e
+                )
+            }
+        }
     }
 }

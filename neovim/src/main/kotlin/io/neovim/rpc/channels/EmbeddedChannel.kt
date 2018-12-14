@@ -4,6 +4,7 @@ import io.neovim.rpc.NeovimChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -18,8 +19,12 @@ class EmbeddedChannel(
 
     init {
         CoroutineScope(job).launch {
-            process.errorStream.bufferedReader().lines().forEach {
-                println("ERROR: $it")
+            try {
+                process.errorStream.bufferedReader().lines().forEach {
+                    println("ERROR: $it")
+                }
+            } catch (e: IOException) {
+                // ignore
             }
         }
     }
@@ -33,7 +38,7 @@ class EmbeddedChannel(
         process.destroy()
     }
 
-    class Factory(
+    data class Factory(
         private val path: String = "/usr/bin/env",
         private val args: List<String> = listOf("nvim")
     ) : NeovimChannel.Factory {

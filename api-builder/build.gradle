@@ -1,25 +1,24 @@
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.3.11'
-    id 'org.jetbrains.intellij' version '0.3.12'
 }
 
-group neojet.group
-version neojet.version
+group 'io.neovim'
+version '0.1.0'
 
 sourceCompatibility = 1.8
 
-intellij {
-    version 'IC-2018.3'
-    pluginName 'NeoJet'
+repositories {
+    mavenCentral()
 }
 
 dependencies {
     compile project(':neovim')
-
+    
     compile deps.kotlin.core
     compile deps.kotlin.coroutines
-
+    compile deps.kotlin.poet
+    
     testCompile deps.test.junit
     testCompile deps.test.assertk
 }

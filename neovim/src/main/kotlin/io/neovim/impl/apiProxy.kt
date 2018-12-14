@@ -1,14 +1,21 @@
-package io.neovim
+package io.neovim.impl
 
+import io.neovim.ApiMethod
+import io.neovim.Rpc
 import kotlinx.coroutines.runBlocking
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import kotlin.coroutines.Continuation
+import kotlin.reflect.KClass
+import kotlin.reflect.jvm.jvmErasure
 
 /**
  * @author dhleong
  */
-inline fun <reified T> proxy(rpc: Rpc): T {
+inline fun <reified T> proxy(
+    rpc: Rpc,
+    customTypeInstanceId: Long? = null
+): T {
 
     val methodInfo = mutableMapOf<Method, ApiMethodInfo>()
 
@@ -19,7 +26,7 @@ inline fun <reified T> proxy(rpc: Rpc): T {
         @Suppress("UNCHECKED_CAST")
         val continuation = args.last() as Continuation<Any>
 
-        val info = methodInfo[method] ?: ApiMethodInfo.from(method).also {
+        val info = methodInfo[method] ?: ApiMethodInfo.from(T::class, method).also {
             methodInfo[method] = it
         }
 
@@ -33,7 +40,8 @@ inline fun <reified T> proxy(rpc: Rpc): T {
         runBlocking(continuation.context) {
             val response = rpc.request(
                 method = info.name,
-                args = args.toList().dropLast(1)
+                args = args.toList().dropLast(1),
+                resultType = info.resultType
             )
             when {
                 response.error != null -> {
@@ -47,12 +55,20 @@ inline fun <reified T> proxy(rpc: Rpc): T {
 
 data class ApiMethodInfo(
     val name: String,
-    val sinceVersion: Int
+    val sinceVersion: Int,
+    val resultType: Class<*>
 ) {
     companion object {
-        fun from(method: Method): ApiMethodInfo {
+        fun from(sourceClass: KClass<*>, method: Method): ApiMethodInfo {
             val annotation = method.getDeclaredAnnotation(ApiMethod::class.java)
-            return ApiMethodInfo(annotation.name, annotation.since)
+            val kmethod = sourceClass.members.first {
+                it.name == method.name
+            }
+            return ApiMethodInfo(
+                name = annotation.name,
+                sinceVersion = annotation.since,
+                resultType = kmethod.returnType.jvmErasure.java
+            )
         }
     }
 }

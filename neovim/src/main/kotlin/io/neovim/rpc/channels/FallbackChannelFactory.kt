@@ -23,4 +23,8 @@ class FallbackChannelFactory(
 
         throw IllegalArgumentException("Unable to create any channel", lastException)
     }
+
+    override fun toString(): String {
+        return "FallbackChannelFactory{\n${candidates.joinToString("\n")}}"
+    }
 }

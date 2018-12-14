@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.neovim.Rpc
 import io.neovim.rpc.impl.expectNext
 import io.neovim.rpc.impl.nextLong
@@ -31,6 +32,8 @@ fun createNeovimObjectMapper(
     return ObjectMapper(factory).apply {
         disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
+
+        registerKotlinModule()
         registerModule(module)
     }
 }
@@ -39,10 +42,10 @@ private class ObjectMapperModule(
     private val rpc: Rpc
 ) : SimpleModule() {
     init {
-        addDeserializer(Packet::class.java, PacketDeserializer)
+        addDeserializer(Packet::class.java, PacketDeserializer())
     }
 
-    object PacketDeserializer : JsonDeserializer<Packet>() {
+    private inner class PacketDeserializer : JsonDeserializer<Packet>() {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Packet {
             p.expectNext(JsonToken.VALUE_NUMBER_INT)
 
@@ -63,14 +66,10 @@ private class ObjectMapperModule(
         private fun JsonParser.readResponse(): Packet {
             val requestId = nextLong()
             val error: Any? = nextTypedValue()
-//            val result: Any
-//            val desiredType = this.requestedTypes.remove(requestId)
-//            if (desiredType == null) {
-//                result = nextValue(p)
-//            } else {
-//                result = nextValue(p, desiredType)
-//            }
-            val result: Any? = nextTypedValue()
+
+            val result: Any? = rpc.getExpectedTypeForRequest(requestId)?.let { type ->
+                nextTypedValue(type)
+            } ?: nextTypedValue()
 
             return ResponsePacket(
                 requestId = requestId,

@@ -15,7 +15,9 @@ repositories {
 dependencies {
     compile deps.kotlin.core
     compile deps.kotlin.coroutines
+    compile deps.kotlin.reflect
 
+    compile deps.jackson.kotlin
     compile deps.msgpack.core
     compile deps.msgpack.jackson
 

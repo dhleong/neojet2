@@ -42,6 +42,13 @@ internal inline fun <reified T> JsonParser.nextTypedValue(): T? {
     } else readValueAs(T::class.java)
 }
 
+internal fun <T> JsonParser.nextTypedValue(type: Class<T>): T? {
+    val tok = nextValue()
+    return if (tok.id() == JsonTokenId.ID_END_ARRAY) {
+        null
+    } else codec.readValue(this, type)
+}
+
 internal fun <T> JsonParser.nextTypedValue(type: JavaType): T? {
     val tok = nextValue()
     return if (tok.id() == JsonTokenId.ID_END_ARRAY) {

@@ -1,4 +1,5 @@
 rootProject.name = 'neojet'
 include ':neojet'
 include ':neovim'
+include 'api-builder'
 

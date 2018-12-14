@@ -23,10 +23,16 @@ ext.vs = [
 ]
 
 ext.deps = [
+    jackson: [
+        kotlin: 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.7',
+    ],
+
     kotlin: [
         core: 'org.jetbrains.kotlin:kotlin-stdlib-jdk8',
         coroutines: "org.jetbrains.kotlinx:kotlinx-coroutines-core:${vs.coroutines}",
-        corintegration: "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${vs.coroutines}",
+        reflect: 'org.jetbrains.kotlin:kotlin-reflect',
+            
+        poet: 'com.squareup:kotlinpoet:1.0.0',
     ],
 
     msgpack: [
