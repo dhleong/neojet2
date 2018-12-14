@@ -2,17 +2,14 @@ package io.neovim.apibuilder
 
 import com.squareup.kotlinpoet.*
 import io.neovim.ApiMethod
+import io.neovim.types.NeovimApiCallable
 import io.neovim.types.NeovimApiFunction
 import io.neovim.types.NeovimApiInfo
 
 fun NeovimApiFunction.toFunSpec(
     prefix: String? = null
 ) = FunSpec.builder(formatName(prefix)).apply {
-    addAnnotation(
-        AnnotationSpec.builder(ApiMethod::class).apply {
-            addMember("%S, since = %L", name, since)
-        }.build()
-    )
+    addAnnotation(createApiMethodAnnotation())
 
     addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND)
 
@@ -36,6 +33,11 @@ fun NeovimApiFunction.toFunSpec(
             ?: returnType.toTypeName()
     )
 }.build()
+
+fun NeovimApiCallable.createApiMethodAnnotation() =
+    AnnotationSpec.builder(ApiMethod::class).apply {
+        addMember("%S, since = %L", name, since)
+    }.build()
 
 /**
  * The API info returns a lot of "Any"; sometimes we can provide a

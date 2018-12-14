@@ -73,3 +73,4 @@ data class NeovimApiTypeInfo(
     val id: Int,
     val prefix: String
 )
+

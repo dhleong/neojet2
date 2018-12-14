@@ -22,6 +22,8 @@ fun createTypeInterface(
         addKdoc("""
             Interface to "$name" Neovim type
 
+            ${apiInfo.formatGenerated()}
+
             @author dhleong
 
         """.trimIndent())

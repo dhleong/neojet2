@@ -18,7 +18,7 @@ fun createApiInterface(
     addKdoc("""
         Neovim functional interface
 
-        Generated from Neovim v${info.version.major}.${info.version.minor}.${info.version.patch}
+        ${info.formatGenerated()}
 
         @author dhleong
 

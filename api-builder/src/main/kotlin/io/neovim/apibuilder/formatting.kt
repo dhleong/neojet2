@@ -3,6 +3,7 @@ package io.neovim.apibuilder
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.neovim.types.IntPair
+import io.neovim.types.NeovimApiMetadata
 import io.neovim.types.NeovimApiType
 
 /**
@@ -44,6 +45,9 @@ fun String.toCamelCase() = StringBuilder().also { builder ->
         )
     }
 }.toString()
+
+fun NeovimApiMetadata.formatGenerated(): String =
+    "Generated from Neovim v${version.major}.${version.minor}.${version.patch}"
 
 fun TypeSpec.Builder.suppressUnusedWarnings() {
     addAnnotation(AnnotationSpec.builder(Suppress::class).apply {
