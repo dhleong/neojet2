@@ -2,6 +2,7 @@ package io.neovim.impl
 
 import io.neovim.ApiMethod
 import io.neovim.Rpc
+import io.neovim.types.NeovimException
 import kotlinx.coroutines.runBlocking
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -48,14 +49,33 @@ inline fun <reified T> proxy(
         // to Rpc#request, but this is simpler... for now
 
         runBlocking(continuation.context) {
+
+            val fullArgs: MutableList<Any> = if (customTypeInstanceId != null) {
+                // for instance methods, the first argument is always
+                // the instance
+                ArrayList<Any>(args.size).also {
+                    it += customTypeInstanceId
+                }
+            } else {
+                ArrayList(args.size - 1)
+            }
+
+            // always add whatever args were provided
+            fullArgs.addAll(args.toList().dropLast(1))
+
             val response = rpc.request(
                 method = info.name,
-                args = args.toList().dropLast(1),
+                args = fullArgs,
                 resultType = info.resultType
             )
             when {
                 response.error != null -> {
-                    throw RuntimeException(response.error.toString())
+                    // TODO error type?
+                    val msg = response.error.message
+                    throw NeovimException(msg,
+                        method = info.name,
+                        args = fullArgs
+                    )
                 }
                 else -> response.result ?: Unit
             }

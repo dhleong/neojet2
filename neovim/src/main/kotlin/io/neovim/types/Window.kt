@@ -4,6 +4,11 @@ import io.neovim.ApiExtensionType
 import io.neovim.ApiMethod
 import io.neovim.Rpc
 import io.neovim.impl.proxy
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.Suppress
 
 /**
  * Interface to "Window" Neovim type

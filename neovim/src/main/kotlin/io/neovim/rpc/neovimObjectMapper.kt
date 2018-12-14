@@ -65,7 +65,7 @@ private class ObjectMapperModule(
 
         private fun JsonParser.readResponse(): Packet {
             val requestId = nextLong()
-            val error: Any? = nextTypedValue()
+            val error: ErrorResponse? = nextTypedValue()
 
             val result: Any? = rpc.getExpectedTypeForRequest(requestId)?.let { type ->
                 nextTypedValue(type)

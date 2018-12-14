@@ -1,7 +1,9 @@
 package io.neovim
 
 import assertk.assert
+import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isTrue
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.Buffer
 import kotlinx.coroutines.runBlocking
@@ -43,5 +45,12 @@ class NeovimApiIntegrationTest {
                 api.setCurrentBuf(buf)
             }
         }.returnedValue { }
+    }
+
+    @Test fun `Instance methods on custom types work`() = runBlockingUnit {
+        val buffer = api.getCurrentBuf()
+
+        assert(buffer.isValid()).isTrue()
+        assert(buffer.lineCount()).isEqualTo(1L)
     }
 }
