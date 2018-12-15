@@ -1,17 +1,11 @@
 package io.neovim
 
+import io.neovim.events.NeovimEvent
 import io.neovim.impl.proxy
 import io.neovim.types.Buffer
 import io.neovim.types.NeovimApiInfo
 import io.neovim.types.Tabpage
 import io.neovim.types.Window
-import kotlin.Any
-import kotlin.Boolean
-import kotlin.Long
-import kotlin.String
-import kotlin.Suppress
-import kotlin.collections.List
-import kotlin.collections.Map
 
 /**
  * Neovim functional interface
@@ -22,6 +16,13 @@ import kotlin.collections.Map
  */
 @Suppress("unused")
 interface NeovimApi {
+    /**
+     * Get the next Notification event received, such as [Redraw].
+     *
+     * Call [uiAttach] first to start receiving events
+     */
+    suspend fun nextEvent(): NeovimEvent
+
     @ApiMethod("nvim_ui_attach", since = 1)
     suspend fun uiAttach(
         width: Long,

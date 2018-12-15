@@ -3,10 +3,11 @@ package io.neovim
 import assertk.assert
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
+import io.neovim.events.NeovimEvent
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.Buffer
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -58,6 +59,9 @@ class NeovimApiIntegrationTest {
     @Test fun `Read notifications`() = runBlockingUnit {
         api.uiAttach(10, 10, emptyMap())
 
-        delay(50)
+        val nextEvent = api.nextEvent()
+        assert(nextEvent).isNotNull {
+            it.isInstanceOf(NeovimEvent::class)
+        }
     }
 }

@@ -11,6 +11,12 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import io.neovim.ApiMethod
 import io.neovim.rpc.Packet
 import io.neovim.types.Tabpage
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+import kotlin.collections.Map
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
 sealed class NeovimEvent : Packet {

@@ -1,5 +1,6 @@
 package io.neovim
 
+import io.neovim.events.NeovimEvent
 import io.neovim.rpc.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -80,12 +81,15 @@ class Rpc internal constructor(
 
         return firstPacketThat {
             it.requestId == request.requestId
-        }
+        } ?: throw IllegalStateException("Never received response to $method")
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     suspend fun send(packet: Packet) {
         outboundQueue.send(packet)
     }
+
+    suspend fun nextEvent() = firstPacketThat<NeovimEvent> { true }
 
     override fun close() {
         job.cancel()
@@ -95,7 +99,7 @@ class Rpc internal constructor(
 
     private suspend inline fun <reified T : Packet> firstPacketThat(
         matching: (packet: T) -> Boolean
-    ): T {
+    ): T? {
 
         var lastDiscarded: Packet? = null
 
@@ -119,7 +123,7 @@ class Rpc internal constructor(
             yield()
         }
 
-        throw IllegalStateException("Never received a matching packet")
+        return null
     }
 
     internal fun getExpectedTypeForRequest(requestId: Long): Class<*>? =
