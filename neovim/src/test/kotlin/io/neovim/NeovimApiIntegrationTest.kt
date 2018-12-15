@@ -63,7 +63,7 @@ class NeovimApiIntegrationTest {
         assert(win.isValid()).isTrue()
         assert {
             runBlocking {
-                win.setCursor(IntPair(0, 0))
+                win.setCursor(IntPair(1, 0))
             }
         }.returnedValue {  }
     }
