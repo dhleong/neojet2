@@ -19,6 +19,7 @@ dependencies {
 
     compile deps.kotlin.core
     compile deps.kotlin.coroutines
+    compile deps.kotlin.swing
 
     testCompile deps.test.junit
     testCompile deps.test.assertk

@@ -1,8 +1,8 @@
 package org.neojet.nvim
 
 import io.neovim.NeovimApi
-import io.neovim.rpc.NeovimChannel
 import io.neovim.Rpc
+import io.neovim.rpc.NeovimChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
@@ -16,6 +16,9 @@ class NvimWrapper(
     @Suppress("EXPERIMENTAL_API_USAGE")
     val instance: NeovimApi
         get() = myInstance ?: open()
+
+    val rpc: Rpc
+        get() = myRpc ?: open().let { myRpc!! }
 
     private var myInstance: NeovimApi? = null
     private var myRpc: Rpc? = null

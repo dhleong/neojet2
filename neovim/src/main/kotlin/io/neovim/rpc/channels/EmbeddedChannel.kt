@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.UncheckedIOException
 
 /**
  * @author dhleong
@@ -23,6 +24,8 @@ class EmbeddedChannel(
                 process.errorStream.bufferedReader().lines().forEach {
                     println("ERROR: $it")
                 }
+            } catch (e: UncheckedIOException) {
+                // ignore
             } catch (e: IOException) {
                 // ignore
             }

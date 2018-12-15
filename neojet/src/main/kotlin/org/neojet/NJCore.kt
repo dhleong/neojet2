@@ -3,12 +3,22 @@ package org.neojet
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseComponent
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.EditorFactoryEvent
+import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFile
+import io.neovim.NeovimApi
+import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
 import io.neovim.rpc.channels.SocketChannel
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import io.neovim.types.IntPair
+import kotlinx.coroutines.Job
 import org.neojet.nvim.NvimWrapper
+import org.neojet.util.*
+import java.awt.KeyboardFocusManager
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
 /**
@@ -16,25 +26,52 @@ import java.util.logging.Logger
  */
 class NJCore : BaseComponent, Disposable {
 
-    val logger = Logger.getLogger("neojet:NJCore")
+    private val logger: Logger = Logger.getLogger("neojet:NJCore")
 
+    private lateinit var job: Job
     var nvim = NvimWrapper(FallbackChannelFactory(
-        SocketChannel.Factory("localhost", 7777)
+        SocketChannel.Factory("localhost", 7777),
+        EmbeddedChannel.Factory()
     ))
 
-    override fun getComponentName(): String = COMPONENT_NAME
+    private var refs = AtomicInteger(0)
 
     override fun initComponent() {
         super.initComponent()
 
-        GlobalScope.launch {
-            val line = nvim().getCurrentLine()
-            logger.info("Current line = $line")
+        corun {
+            val info = nvim().getApiInfo()
+            logger.info("Connected to nvim ${info.apiMetadata.version}")
+        }
+
+        EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
+            override fun editorReleased(event: EditorFactoryEvent) {
+                event.editor.getUserData(neojetEnhancedEditorKey)?.let {
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                        .removeKeyEventDispatcher(it.keyEventDispatcher)
+                }
+            }
+
+            override fun editorCreated(event: EditorFactoryEvent) {
+                // TODO we can probably get away with a single KeyEventDispatcher
+                val facade = NeojetEnhancedEditorFacade.install(event.editor)
+                KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .addKeyEventDispatcher(facade.keyEventDispatcher)
+            }
+        }, this)
+
+        job = corun {
+            while (job.isActive) {
+                val ev = nvim().nextEvent() ?: break
+                logger.info("TODO Event $ev")
+            }
+            logger.info("Exit nvim event loop")
         }
     }
 
     override fun disposeComponent() {
         nvim.close()
+        job.cancel()
         super.disposeComponent()
     }
 
@@ -42,9 +79,56 @@ class NJCore : BaseComponent, Disposable {
         Disposer.dispose(this)
     }
 
-    companion object {
-        const val COMPONENT_NAME = "NJCore"
+    fun attach(editor: Editor, enhanced: NeojetEnhancedEditorFacade): NeovimApi {
+//        val nvim = nvim()
 
+        logger.info("attach($editor)")
+        corun(On.UI) {
+            uiAttach(editor, editor.document.vFile, enhanced.cells)
+//            nvim.command("setlocal nolist")
+//            nvim.rpc.request("nvim_command", "setlocal nolist")
+        }
+
+        return nvim()
+    }
+
+    suspend fun uiAttach(editor: Editor, vFile: VirtualFile, windowSize: IntPair) {
+        Disposer.register(editor.disposable, Disposable {
+            if (0 == refs.decrementAndGet()) {
+                logger.info("detach last")
+                corun {
+                    nvim().uiDetach()
+                }
+            }
+        })
+
+        if (0 == refs.getAndIncrement()) {
+            val (width, height) = windowSize
+            logger.info("attach: $width, $height")
+
+//            nvim.uiAttach(width.toLong(), height.toLong(), mapOf(
+//                "ext_popupmenu" to true,
+//                "ext_tabline" to true,
+//                "ext_cmdline" to true,
+//                "ext_wildmenu" to true
+//            ))
+
+            logger.info("attached")
+        }
+
+        val filePath = vFile.absoluteLocalFile.absolutePath
+        nvim().command("e! $filePath")
+//        nvim.rpc.request("nvim_command", "e! $filePath")
+
+        val buf = nvim().getCurrentBuf()
+//        val buf = nvim.rpc.request(
+//            "nvim_get_current_buf", resultType = Buffer::class.java
+//        ).result as Buffer
+        editor.putUserData(neojetBufferKey, buf)
+        logger.info("installed!")
+    }
+
+    companion object {
         val instance: NJCore
             get() = ApplicationManager.getApplication()
                 .getComponent(NJCore::class.java)

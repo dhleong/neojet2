@@ -19,9 +19,11 @@ interface NeovimApi {
     /**
      * Get the next Notification event received, such as [Redraw].
      *
-     * Call [uiAttach] first to start receiving events
+     * Call [uiAttach] first to start receiving events.
+     *
+     * @return null when the connection is closed.
      */
-    suspend fun nextEvent(): NeovimEvent
+    suspend fun nextEvent(): NeovimEvent?
 
     @ApiMethod("nvim_ui_attach", since = 1)
     suspend fun uiAttach(

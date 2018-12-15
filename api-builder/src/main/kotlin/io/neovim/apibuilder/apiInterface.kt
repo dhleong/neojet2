@@ -1,9 +1,6 @@
 package io.neovim.apibuilder
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import io.neovim.Rpc
 import io.neovim.events.NeovimEvent
 import io.neovim.types.NeovimApiMetadata
@@ -30,12 +27,14 @@ fun createApiInterface(
 
     addFunction(FunSpec.builder("nextEvent").apply {
         addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND)
-        returns(NeovimEvent::class)
+        returns(NeovimEvent::class.asClassName().copy(nullable = true))
 
         addKdoc("""
             Get the next Notification event received, such as [Redraw].
 
-            Call [uiAttach] first to start receiving events
+            Call [uiAttach] first to start receiving events.
+
+            @return null when the connection is closed.
 
         """.trimIndent())
     }.build())
