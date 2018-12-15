@@ -10,3 +10,11 @@ data class IntPair(
     val first: Int,
     val second: Int
 )
+
+// aliases as extension properties to avoid incorrect serialization
+
+val IntPair.width: Int
+    get() = first
+
+val IntPair.height: Int
+    get() = first
