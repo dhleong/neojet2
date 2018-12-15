@@ -2,8 +2,7 @@ package io.neovim.impl
 
 import io.neovim.ApiMethod
 import io.neovim.Rpc
-import io.neovim.types.NeovimException
-import kotlinx.coroutines.runBlocking
+import io.neovim.events.NeovimEvent
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import kotlin.coroutines.Continuation
@@ -53,43 +52,29 @@ fun <T : Any> proxy(
 
         // TODO verify method supported on current API version
 
-        // NOTE using runBlocking() here seems to pretty consistently pop over
-        // to another coroutine *thread*. We could work around this by using a
-        // Java class to pass our continuation object directly to the Java interface
-        // to Rpc#request, but this is simpler... for now
-
-        runBlocking(continuation.context) {
-
-            val fullArgs: MutableList<Any> = if (customTypeInstanceId != null) {
-                // for instance methods, the first argument is always
-                // the instance
-                ArrayList<Any>(args.size).also {
-                    it += customTypeInstanceId
-                }
-            } else {
-                ArrayList(args.size - 1)
+        val fullArgs: MutableList<Any> = if (customTypeInstanceId != null) {
+            // for instance methods, the first argument is always
+            // the instance
+            ArrayList<Any>(args.size).also {
+                it += customTypeInstanceId
             }
-
-            // always add whatever args were provided
-            fullArgs.addAll(args.toList().dropLast(1))
-
-            val response = rpc.request(
-                method = info.name,
-                args = fullArgs,
-                resultType = info.resultType
-            )
-            when {
-                response.error != null -> {
-                    // TODO error type?
-                    val msg = response.error.message
-                    throw NeovimException(msg,
-                        method = info.name,
-                        args = fullArgs
-                    )
-                }
-                else -> response.result ?: Unit
-            }
+        } else {
+            ArrayList(args.size - 1)
         }
+
+        // always add whatever args were provided
+        fullArgs.addAll(args.toList().dropLast(1))
+
+        // we have to pull some tricks to properly implement suspending
+        // from this proxy. This, unfortunately, involves hopping over to
+        // Java land briefly
+        ProxyHelper.request(
+            rpc,
+            info.name,
+            fullArgs,
+            info.resultType,
+            continuation
+        )
     } as T
 }
 
@@ -105,9 +90,8 @@ private fun <T> handleSimpleMethods(
 ): Any? = when (method.name) {
     "nextEvent" -> {
         // nextEvent is a special case for reading notifications
-        runBlocking {
-            rpc.nextEvent()
-        }
+        @Suppress("UNCHECKED_CAST")
+        ProxyHelper.nextEvent(rpc, args!![0] as Continuation<NeovimEvent>)
     }
 
     // NOTE the id property is implemented as a getId() method

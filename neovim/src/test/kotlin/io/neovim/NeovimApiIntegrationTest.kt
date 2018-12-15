@@ -8,6 +8,7 @@ import assertk.assertions.isTrue
 import io.neovim.events.NeovimEvent
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.Buffer
+import io.neovim.types.IntPair
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -54,6 +55,17 @@ class NeovimApiIntegrationTest {
 
         assert(buffer.isValid()).isTrue()
         assert(buffer.lineCount()).isEqualTo(1L)
+    }
+
+    @Test fun `Arguments to methods on custom types work`() = runBlockingUnit {
+        val win = api.getCurrentWin()
+
+        assert(win.isValid()).isTrue()
+        assert {
+            runBlocking {
+                win.setCursor(IntPair(0, 0))
+            }
+        }.returnedValue {  }
     }
 
     @Test fun `Read notifications`() = runBlockingUnit {
