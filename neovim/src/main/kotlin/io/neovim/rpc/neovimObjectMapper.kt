@@ -7,10 +7,10 @@ import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.neovim.Rpc
-import io.neovim.rpc.impl.expectNext
-import io.neovim.rpc.impl.nextLong
-import io.neovim.rpc.impl.nextString
-import io.neovim.rpc.impl.nextTypedValue
+import io.neovim.events.NeovimEvent
+import io.neovim.events.Redraw
+import io.neovim.events.createEventTypesMap
+import io.neovim.rpc.impl.*
 import org.msgpack.jackson.dataformat.MessagePackFactory
 
 /**
@@ -41,12 +41,16 @@ fun createNeovimObjectMapper(
 private class ObjectMapperModule(
     private val rpc: Rpc
 ) : SimpleModule() {
+
+    private val eventsMap = createEventTypesMap()
+    private val instancesMap = mutableMapOf<Class<out NeovimEvent>, NeovimEvent?>()
+
     init {
         addDeserializer(Packet::class.java, PacketDeserializer())
     }
 
     private inner class PacketDeserializer : JsonDeserializer<Packet>() {
-        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Packet {
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Packet? {
             p.expectNext(JsonToken.VALUE_NUMBER_INT)
 
             val type = Packet.Type.create(p.intValue)
@@ -78,9 +82,81 @@ private class ObjectMapperModule(
             )
         }
 
-        private fun JsonParser.readNotification(): Packet {
-            TODO()
+        private fun JsonParser.readNotification(): Packet? {
+            val name = nextString()
+
+            if (name == "redraw") {
+                // redraw is a special case; it has a single argument that is
+                // an array of `[eventType, [argTuple, ...]]` tuples
+                return readRedraw()
+            }
+
+            val type = eventsMap[name]
+                ?: return skipUnknownPacket()
+            return nextEventValue(type) as Packet
+        }
+
+        private fun JsonParser.skipUnknownPacket(): Packet? {
+            nextToken()
+            skipChildren()
+            nextToken()
+            return null
+        }
+
+        private fun JsonParser.readRedraw(): Packet {
+            expectNext(JsonToken.START_ARRAY)
+
+            val contents = mutableListOf<NeovimEvent>()
+
+            while (nextToken() == JsonToken.START_ARRAY) {
+                val name = nextString()
+                val type = eventsMap[name]
+                if (type == null) {
+                    while (nextToken() == JsonToken.START_ARRAY) {
+                        skipChildren()
+                    }
+                    continue
+                }
+
+                while (currentToken != JsonToken.END_ARRAY) {
+                    val subEvent = nextEventValue(type) ?: break // no more
+                    contents.add(subEvent)
+                }
+                expect(JsonToken.END_ARRAY)
+            }
+
+            expect(JsonToken.END_ARRAY)
+            return Redraw(contents)
+        }
+
+        private fun JsonParser.nextEventValue(
+            type: Class<out NeovimEvent>
+        ): NeovimEvent? {
+            val instance = instancesMap[type]
+                ?: type.findInstance().also {
+                    instancesMap[type] = it
+                }
+
+            return if (instance !== NotSingleInstance) {
+                // skip the empty array...
+                expectNext(JsonToken.START_ARRAY)
+                skipChildren()
+                nextToken()
+
+                // ... and use the singleton
+                instance
+            } else {
+                nextTypedValue(type)
+            }
         }
     }
+
+    companion object {
+        private val NotSingleInstance = Redraw(emptyList())
+    }
+
+    private fun <T : NeovimEvent> Class<T>.findInstance(): NeovimEvent =
+        kotlin.objectInstance ?: NotSingleInstance
 }
+
 

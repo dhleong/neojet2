@@ -15,6 +15,8 @@ import kotlin.collections.Map
 /**
  * Interface to "Buffer" Neovim type
  *
+ * Generated from Neovim v0.3.1
+ *
  * @author dhleong
  */
 @Suppress("unused")

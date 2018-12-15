@@ -24,7 +24,7 @@ internal class ObjectMapperPacketsChannel(
         mapper = createNeovimObjectMapper(rpc)
     }
 
-    override fun readPacket(): Packet =
+    override fun readPacket(): Packet? =
         mapper.readValue(input, Packet::class.java)
 
     override fun writePacket(packet: Packet) {

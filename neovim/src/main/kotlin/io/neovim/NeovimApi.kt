@@ -5,6 +5,13 @@ import io.neovim.types.Buffer
 import io.neovim.types.NeovimApiInfo
 import io.neovim.types.Tabpage
 import io.neovim.types.Window
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.Suppress
+import kotlin.collections.List
+import kotlin.collections.Map
 
 /**
  * Neovim functional interface

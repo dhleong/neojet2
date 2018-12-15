@@ -6,6 +6,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isTrue
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.Buffer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -52,5 +53,11 @@ class NeovimApiIntegrationTest {
 
         assert(buffer.isValid()).isTrue()
         assert(buffer.lineCount()).isEqualTo(1L)
+    }
+
+    @Test fun `Read notifications`() = runBlockingUnit {
+        api.uiAttach(10, 10, emptyMap())
+
+        delay(50)
     }
 }

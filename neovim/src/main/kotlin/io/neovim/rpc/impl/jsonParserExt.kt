@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.core.JsonTokenId
-import com.fasterxml.jackson.databind.JavaType
 
 
 /**
@@ -35,23 +34,13 @@ fun JsonParser.nextString(): String {
     return valueAsString
 }
 
-internal inline fun <reified T> JsonParser.nextTypedValue(): T? {
-    val tok = nextValue()
-    return if (tok.id() == JsonTokenId.ID_END_ARRAY) {
-        null
-    } else readValueAs(T::class.java)
-}
+internal inline fun <reified T> JsonParser.nextTypedValue(): T? =
+    nextTypedValue(T::class.java)
 
 internal fun <T> JsonParser.nextTypedValue(type: Class<T>): T? {
     val tok = nextValue()
     return if (tok.id() == JsonTokenId.ID_END_ARRAY) {
         null
-    } else codec.readValue(this, type)
+    } else readValueAs(type)
 }
 
-internal fun <T> JsonParser.nextTypedValue(type: JavaType): T? {
-    val tok = nextValue()
-    return if (tok.id() == JsonTokenId.ID_END_ARRAY) {
-        null
-    } else codec.readValue(this, type)
-}
