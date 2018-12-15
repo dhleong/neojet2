@@ -14,7 +14,7 @@ data class ResponsePacket(
 
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
-class ErrorResponse(
+data class ErrorResponse(
     val type: Int,
     val message: String
 )
