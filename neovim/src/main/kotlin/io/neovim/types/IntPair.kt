@@ -17,4 +17,4 @@ val IntPair.width: Int
     get() = first
 
 val IntPair.height: Int
-    get() = first
+    get() = second
