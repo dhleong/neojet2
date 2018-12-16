@@ -152,6 +152,36 @@ class NeovimObjectMapperTest {
         assert((reconstituted as TablineUpdate).current.id).isEqualTo(42L)
     }
 
+    @Test fun `Parse embedded objects in redraw notifications`() {
+        val serialized = mapper.writeValueAsBytes(NotificationWrapper(
+            name = "redraw",
+            args = listOf(
+                listOf(
+                    "tabline_update",
+                    listOf(
+                        Tabpage.create(rpc, 42),
+                        listOf(
+                            mapOf(
+                                "tab" to Tabpage.create(rpc, 9001),
+                                "name" to "serenity"
+                            )
+                        )
+                    )
+                )
+            )
+        ))
+
+        val reconstituted = mapper.readValue(serialized, Packet::class.java)
+        assert(reconstituted).isNotNull {
+            it.isInstanceOf(Redraw::class.java)
+        }
+        val update = (reconstituted as Redraw).events[0]
+        assert(update).isNotNull {
+            it.isInstanceOf(TablineUpdate::class.java)
+        }
+        assert((update as TablineUpdate).current.id).isEqualTo(42L)
+    }
+
     private fun readNotificationFromJson(json: String): Packet? =
         readFromJson("[2, $json]")
 

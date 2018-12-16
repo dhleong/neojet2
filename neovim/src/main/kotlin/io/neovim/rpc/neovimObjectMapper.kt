@@ -93,11 +93,12 @@ private class ObjectMapperModule(
             val type = eventsMap[name]
                 ?: return skipUnknownPacket()
 
-            return nextEventValue(type) as Packet
+            nextToken()
+            return readEventValue(type) as Packet
         }
 
         private fun JsonParser.skipUnknownPacket(): Packet? {
-            nextToken()
+            expectNext(JsonToken.START_ARRAY)
             skipChildren()
             nextToken()
             return null
@@ -119,9 +120,9 @@ private class ObjectMapperModule(
                     continue
                 }
 
-                while (currentToken != JsonToken.END_ARRAY) {
-                    // FIXME why can't we just use nextEventValue here?
-                    val subEvent = inflateNextEventValue(type) ?: break // no more
+                while (nextToken() != JsonToken.END_ARRAY) {
+                    expect(JsonToken.START_ARRAY)
+                    val subEvent = readEventValue(type) ?: break // no more
                     contents.add(subEvent)
                 }
                 expect(JsonToken.END_ARRAY)
@@ -131,7 +132,7 @@ private class ObjectMapperModule(
             return Redraw(contents)
         }
 
-        private fun JsonParser.nextEventValue(
+        private fun JsonParser.readEventValue(
             type: Class<out NeovimEvent>
         ): NeovimEvent? {
             //NOTE: you would think that if reading it as a Tree
@@ -141,7 +142,6 @@ private class ObjectMapperModule(
             //   Cannot deserialize instance of `java.util.ArrayList` out
             //   of VALUE_EMBEDDED_OBJECT token
             // when parsing eg: TablineUpdate (see NeovimObjectMapperTest)
-            nextToken()
             val tree = readValueAsTree<TreeNode>()
             return codec.treeAsTokens(tree)
                 .inflateNextEventValue(type)
