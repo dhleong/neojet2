@@ -4,6 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.util.logging.Logger
 import kotlin.coroutines.CoroutineContext
 
@@ -26,7 +28,14 @@ inline fun corun(on: On = On.BG, crossinline block: suspend () -> Unit): Job {
         try {
             block()
         } catch (e: Throwable) {
-            logger.warning("Unexpected Error: $e")
+            logger.warning("Unexpected Error: ${e.javaClass} ${e.toStringWithStack()}")
         }
     }
 }
+
+fun Throwable.toStringWithStack(): String =
+    StringWriter().let {
+        it.append(toString())
+        it.append("\n")
+        printStackTrace(PrintWriter(it))
+    }.toString()

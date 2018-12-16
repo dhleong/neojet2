@@ -17,9 +17,6 @@ class NvimWrapper(
     val instance: NeovimApi
         get() = myInstance ?: open()
 
-    val rpc: Rpc
-        get() = myRpc ?: open().let { myRpc!! }
-
     private var myInstance: NeovimApi? = null
     private var myRpc: Rpc? = null
 

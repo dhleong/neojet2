@@ -10,9 +10,16 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import io.neovim.NeovimApi
+import io.neovim.events.CursorGoto
+import io.neovim.events.NeovimEvent
+import io.neovim.events.Redraw
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
 import io.neovim.types.height
+import org.neojet.events.EventDispatchTarget
+import org.neojet.events.EventDispatcher
+import org.neojet.events.HandlesEvent
+import org.neojet.nvim.input
 import org.neojet.util.*
 import java.awt.Component
 import java.awt.KeyEventDispatcher
@@ -29,7 +36,9 @@ import javax.swing.JComponent
 val neojetEnhancedEditorKey = Key<NeojetEnhancedEditorFacade>("org.neojet.enhancedEditor")
 val neojetBufferKey = Key<Buffer>("org.neojet.buffer")
 
-class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Disposable {
+class NeojetEnhancedEditorFacade private constructor(
+    val editor: Editor
+) : Disposable, EventDispatchTarget {
     companion object {
         fun install(editor: Editor): NeojetEnhancedEditorFacade {
             if (!(editor is EditorImpl || editor is TextEditor)) {
@@ -82,8 +91,7 @@ class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Dispo
     var cells = editor.getTextCells()
 
     val nvim: NeovimApi = NJCore.instance.attach(editor, this)
-//    private val subs = CompositeDisposable()
-//    private val dispatcher = EventDispatcher(this)
+    private val dispatcher = EventDispatcher(this)
 
 //    private lateinit var modes: List<ModeInfo>
 //    private var mode: ModeInfo? = null
@@ -102,12 +110,12 @@ class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Dispo
         editor.caretModel.addCaretListener(caretMovedListener)
         editor.contentComponent.addFocusListener(object : FocusAdapter() {
             override fun focusGained(e: FocusEvent?) {
+                EditorManager.setActive(this@NeojetEnhancedEditorFacade)
                 corun {
-                    nvim.setCurrentBuf(editor.buffer)
+                    editor.buffer?.let {
+                        nvim.setCurrentBuf(it)
+                    }
                 }
-
-//                nvim.current.bufferSet(editor.buffer)
-//                    .execAsync("set current buffer")
             }
         })
 
@@ -135,10 +143,8 @@ class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Dispo
     }
 
     fun dispatchTypedKey(e: KeyEvent) {
-//        nvim.input(e).execAsync("Dispatch key event")
         corun {
-            // TODO ?
-//            nvim.feedkeys()
+            nvim.input(e)
         }
     }
 
@@ -181,48 +187,47 @@ class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Dispo
 //        System.out.println("ClearEOL after $cursorCol @${logicalPosition.line}")
 //        editor.document.deleteString(start, end)
 //    }
-//
+
+    @HandlesEvent
+    fun cursorMoved(event: CursorGoto) {
+        movingCursor = true
+
+        cursorRow = event.row.toInt()
+        cursorCol = event.col.toInt()
+        System.out.println("CursorGoto($cursorRow, $cursorCol)")
+
+        if (cursorInDocument) {
+            val newLogicalPosition = getLogicalPosition()
+
+            val lineEndOffset = editor.getLineEndOffset(newLogicalPosition.line)
+            val lineLength = lineEndOffset - editor.getLineStartOffset(newLogicalPosition.line)
+            val endDiff = cursorCol - lineLength
+            if (endDiff > 0) {
+                // this implies inserting spaces
+                editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
+            }
+
+            editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
+        }
+
+        movingCursor = false
+    }
+
 //    @HandlesEvent
-//    fun cursorMoved(event: CursorGotoEvent) {
-//        movingCursor = true
-//
-//        event.value[0].let {
-//            cursorRow = it.row()
-//            cursorCol = it.col()
-//            System.out.println("CursorGoto($cursorRow, $cursorCol)")
-//
-//            if (cursorInDocument) {
-//                val newLogicalPosition = getLogicalPosition()
-//
-//                val lineEndOffset = editor.getLineEndOffset(newLogicalPosition.line)
-//                val lineLength = lineEndOffset - editor.getLineStartOffset(newLogicalPosition.line)
-//                val endDiff = cursorCol - lineLength
-//                if (endDiff > 0) {
-//                    // this implies inserting spaces
-//                    editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
-//                }
-//
-//                editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
-//            }
-//        }
-//
-//        movingCursor = false
-//    }
-//
-//    @HandlesEvent
-//    fun modeInfoSet(event: ModeInfoSetEvent) {
+//    fun modeInfoSet(event: ModeInfoSet) {
 //        modes = event.value[0].modes
 //    }
-//
+
 //    @HandlesEvent
-//    fun modeChange(event: ModeChangeEvent) {
+//    fun modeChange(event: ModeChange) {
+//        event.mode
 //        modes[event.value[0].modeIndex].let {
 //            mode = it
 //
 //            updateCursor(it)
 //        }
 //    }
-//
+
 //    @HandlesEvent
 //    fun put(event: PutEvent) {
 //        if (DumbService.getInstance(editor.project!!).isDumb) return
@@ -367,6 +372,23 @@ class NeojetEnhancedEditorFacade private constructor(val editor: Editor) : Dispo
             }
         }
         editingDocumentFromVim = false
+    }
+
+    fun dispatch(ev: NeovimEvent) {
+        editDocumentFromVim {
+            if (ev is Redraw) {
+                for (child in ev.events) {
+                    dispatch(child)
+                }
+                return@editDocumentFromVim
+            }
+
+            try {
+                dispatcher.dispatch(ev)
+            } catch (e: Throwable) {
+                logger.warning("Error dispatching $ev:\n${e.toStringWithStack()}")
+            }
+        }
     }
 }
 

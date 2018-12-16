@@ -30,9 +30,11 @@ val Document.vFile: VirtualFile
     get() = FileDocumentManager.getInstance().getFile(this)
         ?: throw IllegalArgumentException("$this didn't have a vFile")
 
-val Editor.buffer: Buffer
+var Editor.buffer: Buffer?
     get() = getUserData(neojetBufferKey)
-        ?: throw IllegalArgumentException("$this didn't have a Buffer")
+    set(value) {
+        putUserData(neojetBufferKey, value)
+    }
 
 val Editor.disposable: Disposable
     get() {
