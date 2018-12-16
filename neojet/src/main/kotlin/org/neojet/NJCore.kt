@@ -12,7 +12,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.NeovimApi
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
-import io.neovim.rpc.channels.SocketChannel
 import io.neovim.types.IntPair
 import kotlinx.coroutines.Job
 import org.neojet.nvim.NvimWrapper
@@ -30,7 +29,7 @@ class NJCore : BaseComponent, Disposable {
 
     private lateinit var job: Job
     var nvim = NvimWrapper(FallbackChannelFactory(
-        SocketChannel.Factory("localhost", 7777),
+//        SocketChannel.Factory("localhost", 7777),
         EmbeddedChannel.Factory()
     ))
 
@@ -65,6 +64,7 @@ class NJCore : BaseComponent, Disposable {
                 val ev = nvim().nextEvent() ?: break
 
                 EditorManager.getCurrent()?.dispatch(ev)
+                    ?: logger.warning("No editor to receive $ev")
             }
             logger.info("Exit nvim event loop")
         }
@@ -83,6 +83,7 @@ class NJCore : BaseComponent, Disposable {
     fun attach(editor: Editor, enhanced: NeojetEnhancedEditorFacade): NeovimApi {
         val nvim = nvim()
 
+        EditorManager.setActive(enhanced)
         logger.info("attach($editor)")
         corun(On.UI) {
             nvim.command("setlocal nolist")

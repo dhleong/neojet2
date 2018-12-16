@@ -3,9 +3,10 @@ package io.neovim
 import io.neovim.events.NeovimEvent
 import io.neovim.rpc.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.produce
-import kotlinx.coroutines.selects.select
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -29,25 +30,22 @@ class Rpc internal constructor(
         get() = Dispatchers.Default + job
 
     @ExperimentalCoroutinesApi
-    private val packetProducer = produce {
+    private val allPackets = BroadcastChannel<Packet>(16)
+    private val availablePackets = mutableSetOf<Packet>()
+    private val availablePacketsLock = ReentrantLock()
+
+    @ExperimentalCoroutinesApi
+    private val packetProducer = launch {
         val input = this@Rpc.channel
 
         while (job.isActive) {
-            val packet = input.readPacket() ?: break
+            val packet = input.readPacket()
+                ?: continue // unknown packet; discard and try again
 
-            send(packet)
-        }
-    }
-    private val discardedPackets = Channel<Packet>(capacity = 16)
-
-    @ExperimentalCoroutinesApi
-    private val allPackets = produce {
-        while (job.isActive) {
-            val selected = select<Packet> {
-                packetProducer.onReceive { it }
-                discardedPackets.onReceive { it }
+            availablePacketsLock.withLock {
+                availablePackets.add(packet)
             }
-            send(selected)
+            allPackets.send(packet)
         }
     }
 
@@ -93,6 +91,8 @@ class Rpc internal constructor(
 
     override fun close() {
         job.cancel()
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        packetProducer.cancel()
         packetSender.cancel()
         channel.close()
     }
@@ -100,21 +100,36 @@ class Rpc internal constructor(
     private suspend inline fun <reified T : Packet> firstPacketThat(
         matching: (packet: T) -> Boolean
     ): T? {
-
-        var lastDiscarded: Packet? = null
+        // check the available buffered packets
+        availablePacketsLock.withLock {
+            val iterator = availablePackets.iterator()
+            while (iterator.hasNext()) {
+                val packet = iterator.next()
+                if (packet is T && matching(packet)) {
+                    iterator.remove()
+                    return packet
+                }
+            }
+        }
 
         @Suppress("EXPERIMENTAL_API_USAGE")
-        for (packet in allPackets) {
+        val channel = allPackets.openSubscription()
+        for (packet in channel) {
             if (packet is T && matching(packet)) {
+                channel.cancel()
+                availablePacketsLock.withLock {
+                    availablePackets.remove(packet)
+                }
                 return packet
             }
 
-            discardedPackets.send(packet)
-
-            // give someone else a chance to consume it
+            // make sure someone else has a chance to consume
             yield()
+
+            // request another packet, because ours isn't here yet
         }
 
+        channel.cancel()
         return null
     }
 

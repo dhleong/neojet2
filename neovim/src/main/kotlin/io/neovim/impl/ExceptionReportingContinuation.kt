@@ -50,8 +50,7 @@ class ExceptionReportingContinuation(
             result is ResponsePacket && result.error != null ->
                 throw toException(result, methodName, methodArgs)
 
-            result is ResponsePacket ->
-                Result.success(unpack(result))
+            result is ResponsePacket -> unpack(result)
 
             // suspended coroutine
             else -> result

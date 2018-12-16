@@ -7,11 +7,13 @@ import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import io.neovim.NeovimApi
 import io.neovim.events.CursorGoto
 import io.neovim.events.NeovimEvent
+import io.neovim.events.Put
 import io.neovim.events.Redraw
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
@@ -89,6 +91,7 @@ class NeojetEnhancedEditorFacade private constructor(
 
     private val logger: Logger = Logger.getLogger("NeoJet:EditorFacade")
 
+    // TODO handle resize
     var cells = editor.getTextCells()
 
     val nvim: NeovimApi = NJCore.instance.attach(editor, this)
@@ -230,10 +233,17 @@ class NeojetEnhancedEditorFacade private constructor(
 //        }
 //    }
 
-//    @HandlesEvent
-//    fun put(event: PutEvent) {
-//        if (DumbService.getInstance(editor.project!!).isDumb) return
-//
+    @HandlesEvent
+    fun put(event: Put) {
+        if (DumbService.getInstance(editor.project!!).isDumb) return
+
+        if (!cursorInDocument) return
+
+        println("TODO put(${event.str}) @$cursorRow, $cursorCol")
+
+        ++cursorCol
+    }
+
 //        val line = cursorRow
 //        val lineText = event.bytesToCharSequence()
 //        if (cursorOnStatusLine) {
