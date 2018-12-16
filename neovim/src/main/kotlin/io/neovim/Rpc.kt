@@ -109,17 +109,9 @@ class Rpc internal constructor(
                 return packet
             }
 
-            @Suppress("LiftReturnOrAssignment")
-            if (packet != lastDiscarded) {
-                discardedPackets.send(packet)
-                lastDiscarded = packet
-            } else {
-                // if we got it again, chances are we're the only
-                // ones listening and/or nobody else wants it,
-                // so just actually discard it
-                lastDiscarded = null
-            }
+            discardedPackets.send(packet)
 
+            // give someone else a chance to consume it
             yield()
         }
 
