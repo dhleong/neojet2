@@ -2,11 +2,14 @@ package io.neovim.rpc
 
 import assertk.assert
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.neovim.DummyPacketsChannel
 import io.neovim.Rpc
 import io.neovim.events.*
+import io.neovim.types.Tabpage
 import org.junit.Before
 import org.junit.Test
 
@@ -15,10 +18,11 @@ import org.junit.Test
  */
 class NeovimObjectMapperTest {
 
+    private val rpc = Rpc(DummyPacketsChannel())
     lateinit var mapper: ObjectMapper
 
     @Before fun setUp() {
-        mapper = createNeovimObjectMapper(Rpc(DummyPacketsChannel()))
+        mapper = createNeovimObjectMapper(rpc)
     }
 
     @Test fun `Request Packet Round trip`() {
@@ -125,6 +129,27 @@ class NeovimObjectMapperTest {
             Put("o"),
             Put("e")
         )))
+    }
+
+    @Test fun `Parse embedded objects in notifications`() {
+        val serialized = mapper.writeValueAsBytes(NotificationWrapper(
+            name = "tabline_update",
+            args = listOf(
+                Tabpage.create(rpc, 42),
+                listOf(
+                    mapOf(
+                        "tab" to Tabpage.create(rpc, 9001),
+                        "name" to "serenity"
+                    )
+                )
+            )
+        ))
+
+        val reconstituted = mapper.readValue(serialized, Packet::class.java)
+        assert(reconstituted).isNotNull {
+            it.isInstanceOf(TablineUpdate::class.java)
+        }
+        assert((reconstituted as TablineUpdate).current.id).isEqualTo(42L)
     }
 
     private fun readNotificationFromJson(json: String): Packet? =

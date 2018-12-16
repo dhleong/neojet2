@@ -1,8 +1,6 @@
 package io.neovim.rpc
 
-import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.core.JsonToken
+import com.fasterxml.jackson.core.*
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -12,6 +10,7 @@ import io.neovim.events.Redraw
 import io.neovim.events.createEventTypesMap
 import io.neovim.rpc.impl.*
 import org.msgpack.jackson.dataformat.MessagePackFactory
+import java.io.IOException
 
 /**
  * @author dhleong
@@ -93,6 +92,7 @@ private class ObjectMapperModule(
 
             val type = eventsMap[name]
                 ?: return skipUnknownPacket()
+
             return nextEventValue(type) as Packet
         }
 
@@ -112,6 +112,7 @@ private class ObjectMapperModule(
                 val name = nextString()
                 val type = eventsMap[name]
                 if (type == null) {
+                    // skip unknown events
                     while (nextToken() == JsonToken.START_ARRAY) {
                         skipChildren()
                     }
@@ -119,7 +120,8 @@ private class ObjectMapperModule(
                 }
 
                 while (currentToken != JsonToken.END_ARRAY) {
-                    val subEvent = nextEventValue(type) ?: break // no more
+                    // FIXME why can't we just use nextEventValue here?
+                    val subEvent = inflateNextEventValue(type) ?: break // no more
                     contents.add(subEvent)
                 }
                 expect(JsonToken.END_ARRAY)
@@ -132,12 +134,29 @@ private class ObjectMapperModule(
         private fun JsonParser.nextEventValue(
             type: Class<out NeovimEvent>
         ): NeovimEvent? {
+            //NOTE: you would think that if reading it as a Tree
+            // and then parsing from that works, we could just read it
+            // directly without problems... but you'd be wrong.
+            // Reading directly causes:
+            //   Cannot deserialize instance of `java.util.ArrayList` out
+            //   of VALUE_EMBEDDED_OBJECT token
+            // when parsing eg: TablineUpdate (see NeovimObjectMapperTest)
+            nextToken()
+            val tree = readValueAsTree<TreeNode>()
+            return codec.treeAsTokens(tree)
+                .inflateNextEventValue(type)
+//            return inflateNextEventValue(type) as Packet
+        }
+
+        private fun JsonParser.inflateNextEventValue(
+            type: Class<out NeovimEvent>
+        ): NeovimEvent? = try {
             val instance = instancesMap[type]
                 ?: type.findInstance().also {
                     instancesMap[type] = it
                 }
 
-            return if (instance !== NotSingleInstance) {
+            if (instance !== NotSingleInstance) {
                 // skip the empty array...
                 expectNext(JsonToken.START_ARRAY)
                 skipChildren()
@@ -148,6 +167,11 @@ private class ObjectMapperModule(
             } else {
                 nextTypedValue(type)
             }
+        } catch (e: JsonProcessingException) {
+            throw IOException(
+                "Unable to deserialize $type",
+                e
+            )
         }
     }
 

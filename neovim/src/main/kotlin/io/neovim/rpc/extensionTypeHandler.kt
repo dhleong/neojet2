@@ -22,6 +22,16 @@ import org.msgpack.jackson.dataformat.MessagePackGenerator
 import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.findAnnotation
 
+/**
+ * Using the custom ExtensionType deserializers seems
+ * like a better approach, since it doesn't leave instances of
+ * [MessagePackExtensionType] in the tree, but for some reason
+ * it causes problems with EXT types nested in Notifications.
+ *
+ * The code remains for reference, but is disabled by this flag
+ */
+private const val useCustomExtDeserializers = false
+
 fun installNeovimExtensionTypes(
     rpc: Rpc,
     factory: MessagePackFactory,
@@ -33,7 +43,10 @@ fun installNeovimExtensionTypes(
     register<Window>(rpc, factory, module, deserializers)
     register<Tabpage>(rpc, factory, module, deserializers)
 
-    factory.setExtTypeCustomDesers(deserializers)
+    @Suppress("ConstantConditionIf")
+    if (useCustomExtDeserializers) {
+        factory.setExtTypeCustomDesers(deserializers)
+    }
 }
 
 private inline fun <reified T : NeovimObject> register(
@@ -63,12 +76,22 @@ private inline fun <reified T : NeovimObject> register(
         }
     })
 
-    val deserializer = object : JsonDeserializer<T>() {
+    module.addDeserializer(T::class.java, object : JsonDeserializer<T>() {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext?): T {
-            return p.embeddedObject as T
+            @Suppress("ConstantConditionIf")
+            if (useCustomExtDeserializers) {
+                return p.embeddedObject as T
+            }
+
+            val wrapper = p.embeddedObject as MessagePackExtensionType
+            if (wrapper.type != typeIdByte) {
+                throw IllegalArgumentException()
+            }
+
+            return deserializers.getDeser(typeIdByte)
+                .deserialize(wrapper.data) as T
         }
-    }
-    module.addDeserializer(T::class.java, deserializer)
+    })
 
     deserializers.addCustomDeser(typeIdByte) { bytes ->
         val parser = factory.createParser(bytes)

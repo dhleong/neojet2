@@ -28,14 +28,12 @@ inline fun corun(on: On = On.BG, crossinline block: suspend () -> Unit): Job {
         try {
             block()
         } catch (e: Throwable) {
-            logger.warning("Unexpected Error: ${e.javaClass} ${e.toStringWithStack()}")
+            logger.warning("Unexpected Error (${e.javaClass}): ${e.toStringWithStack()}")
         }
     }
 }
 
 fun Throwable.toStringWithStack(): String =
-    StringWriter().let {
-        it.append(toString())
-        it.append("\n")
+    StringWriter().also {
         printStackTrace(PrintWriter(it))
     }.toString()

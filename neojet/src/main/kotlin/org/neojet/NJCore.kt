@@ -84,8 +84,8 @@ class NJCore : BaseComponent, Disposable {
 
         logger.info("attach($editor)")
         corun(On.UI) {
-            uiAttach(nvim, editor, editor.document.vFile, enhanced.cells)
             nvim.command("setlocal nolist")
+            uiAttach(nvim, editor, editor.document.vFile, enhanced.cells)
         }
 
         return nvim()
@@ -105,6 +105,7 @@ class NJCore : BaseComponent, Disposable {
             val (width, height) = windowSize
             logger.info("attach: $width, $height")
 
+            nvim.command("set laststatus=0")
             nvim.uiAttach(width.toLong(), height.toLong(), mapOf(
                 "ext_popupmenu" to true,
                 "ext_tabline" to true,
@@ -116,9 +117,10 @@ class NJCore : BaseComponent, Disposable {
         }
 
         val filePath = vFile.absoluteLocalFile.absolutePath
-        nvim.command("""e! "$filePath"""")
+        nvim.command("e! $filePath")
 
         editor.buffer = nvim.getCurrentBuf()
+        logger.info("installed!")
     }
 
     companion object {

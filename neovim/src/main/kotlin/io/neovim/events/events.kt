@@ -8,19 +8,15 @@
 package io.neovim.events
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnore
 import io.neovim.ApiMethod
 import io.neovim.rpc.Packet
 import io.neovim.types.Tabpage
-import kotlin.Any
-import kotlin.Boolean
-import kotlin.Long
-import kotlin.String
-import kotlin.collections.List
-import kotlin.collections.Map
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
 sealed class NeovimEvent : Packet {
-    override val type: Packet.Type = Packet.Type.NOTIFICATION
+    @JsonIgnore
+    final override val type: Packet.Type = Packet.Type.NOTIFICATION
 }
 
 /**
