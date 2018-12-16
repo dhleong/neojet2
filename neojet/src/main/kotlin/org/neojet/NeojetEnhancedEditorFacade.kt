@@ -74,14 +74,15 @@ class NeojetEnhancedEditorFacade private constructor(
 
     private val caretMovedListener = object : CaretListener {
         override fun caretPositionChanged(ev: CaretEvent) {
-            if (!movingCursor) {
-                val line = ev.newPosition.line + 1 // 0-indexed to 1-indexed
-                val column = ev.newPosition.column
+            if (movingCursor) return // nvim-initiated
+            if (editor.buffer == null) return // not installed/buffer not loaded yet
 
-                corun {
-                    nvim.getCurrentWin()
-                        .setCursor(IntPair(line, column))
-                }
+            val line = ev.newPosition.line + 1 // 0-indexed to 1-indexed
+            val column = ev.newPosition.column
+
+            corun {
+                nvim.getCurrentWin()
+                    .setCursor(IntPair(line, column))
             }
         }
     }
@@ -194,7 +195,7 @@ class NeojetEnhancedEditorFacade private constructor(
 
         cursorRow = event.row.toInt()
         cursorCol = event.col.toInt()
-        System.out.println("CursorGoto($cursorRow, $cursorCol)")
+        System.out.println("CursorGoto($cursorRow, $cursorCol) / $cursorInDocument")
 
         if (cursorInDocument) {
             val newLogicalPosition = getLogicalPosition()
@@ -207,6 +208,7 @@ class NeojetEnhancedEditorFacade private constructor(
                 editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
             }
 
+            System.out.println(" --> goto $newLogicalPosition")
             editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
         }
 
@@ -334,10 +336,10 @@ class NeojetEnhancedEditorFacade private constructor(
 //    }
 
     private val cursorInDocument: Boolean
-        get() = cursorRow < cells.height - 2
+        get() = cursorRow < cells.height - 1
 
     private val cursorOnStatusLine: Boolean
-        get() = cursorRow == cells.height - 2
+        get() = cursorRow == cells.height - 1
 
     private val cursorOnExLine: Boolean
         get() = cursorRow == cells.height - 1

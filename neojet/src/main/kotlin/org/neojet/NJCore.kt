@@ -12,6 +12,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.NeovimApi
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
+import io.neovim.rpc.channels.SocketChannel
 import io.neovim.types.IntPair
 import kotlinx.coroutines.Job
 import org.neojet.nvim.NvimWrapper
@@ -29,7 +30,7 @@ class NJCore : BaseComponent, Disposable {
 
     private lateinit var job: Job
     var nvim = NvimWrapper(FallbackChannelFactory(
-//        SocketChannel.Factory("localhost", 7777),
+        SocketChannel.Factory("localhost", 7777),
         EmbeddedChannel.Factory()
     ))
 
