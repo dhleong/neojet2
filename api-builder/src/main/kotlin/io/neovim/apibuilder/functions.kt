@@ -23,7 +23,7 @@ fun NeovimApiFunction.toFunSpec(
         addParameter(
             ParameterSpec.builder(
                 param.name.toCamelCase(),
-                param.type.toTypeName()
+                typeOfParam(param)
             ).build()
         )
     }

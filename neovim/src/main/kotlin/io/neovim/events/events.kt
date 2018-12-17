@@ -8,15 +8,14 @@
 package io.neovim.events
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.annotation.JsonIgnore
 import io.neovim.ApiMethod
+import io.neovim.events.params.*
 import io.neovim.rpc.Packet
 import io.neovim.types.Tabpage
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
 sealed class NeovimEvent : Packet {
-    @JsonIgnore
-    final override val type: Packet.Type = Packet.Type.NOTIFICATION
+    override val type: Packet.Type = Packet.Type.NOTIFICATION
 }
 
 /**
@@ -38,7 +37,7 @@ object EolClear : NeovimEvent()
 data class CursorGoto(val row: Long, val col: Long) : NeovimEvent()
 
 @ApiMethod("mode_info_set", since = 3)
-data class ModeInfoSet(val enabled: Boolean, val cursor_styles: List<Any>) : NeovimEvent()
+data class ModeInfoSet(val enabled: Boolean, val cursorStyles: List<ModeInfo>) : NeovimEvent()
 
 @ApiMethod("update_menu", since = 3)
 object UpdateMenu : NeovimEvent()
@@ -56,7 +55,7 @@ object MouseOn : NeovimEvent()
 object MouseOff : NeovimEvent()
 
 @ApiMethod("mode_change", since = 3)
-data class ModeChange(val mode: String, val mode_idx: Long) : NeovimEvent()
+data class ModeChange(val mode: String, val modeIdx: Long) : NeovimEvent()
 
 @ApiMethod("set_scroll_region", since = 3)
 data class SetScrollRegion(
@@ -70,7 +69,7 @@ data class SetScrollRegion(
 data class Scroll(val count: Long) : NeovimEvent()
 
 @ApiMethod("highlight_set", since = 3)
-data class HighlightSet(val attrs: Map<String, Any>) : NeovimEvent()
+data class HighlightSet(val attrs: HighlightAttrs) : NeovimEvent()
 
 @ApiMethod("put", since = 3)
 data class Put(val str: String) : NeovimEvent()
@@ -95,11 +94,11 @@ data class UpdateSp(val sp: Long) : NeovimEvent()
 
 @ApiMethod("default_colors_set", since = 4)
 data class DefaultColorsSet(
-    val rgb_fg: Long,
-    val rgb_bg: Long,
-    val rgb_sp: Long,
-    val cterm_fg: Long,
-    val cterm_bg: Long
+    val rgbFg: Long,
+    val rgbBg: Long,
+    val rgbSp: Long,
+    val ctermFg: Long,
+    val ctermBg: Long
 ) : NeovimEvent()
 
 @ApiMethod("suspend", since = 3)
@@ -116,7 +115,7 @@ data class OptionSet(val name: String, val value: Any) : NeovimEvent()
 
 @ApiMethod("popupmenu_show", since = 3)
 data class PopupmenuShow(
-    val items: List<Any>,
+    val items: List<CompletionItem>,
     val selected: Long,
     val row: Long,
     val col: Long
@@ -129,11 +128,11 @@ object PopupmenuHide : NeovimEvent()
 data class PopupmenuSelect(val selected: Long) : NeovimEvent()
 
 @ApiMethod("tabline_update", since = 3)
-data class TablineUpdate(val current: Tabpage, val tabs: List<Any>) : NeovimEvent()
+data class TablineUpdate(val current: Tabpage, val tabs: List<TabInfo>) : NeovimEvent()
 
 @ApiMethod("cmdline_show", since = 3)
 data class CmdlineShow(
-    val content: List<Any>,
+    val content: List<ContentInfo>,
     val pos: Long,
     val firstc: String,
     val prompt: String,
@@ -155,16 +154,16 @@ data class CmdlineSpecialChar(
 data class CmdlineHide(val level: Long) : NeovimEvent()
 
 @ApiMethod("cmdline_block_show", since = 3)
-data class CmdlineBlockShow(val lines: List<Any>) : NeovimEvent()
+data class CmdlineBlockShow(val lines: List<ContentInfo>) : NeovimEvent()
 
 @ApiMethod("cmdline_block_append", since = 3)
-data class CmdlineBlockAppend(val lines: List<Any>) : NeovimEvent()
+data class CmdlineBlockAppend(val lines: List<ContentInfo>) : NeovimEvent()
 
 @ApiMethod("cmdline_block_hide", since = 3)
 object CmdlineBlockHide : NeovimEvent()
 
 @ApiMethod("wildmenu_show", since = 3)
-data class WildmenuShow(val items: List<Any>) : NeovimEvent()
+data class WildmenuShow(val items: List<CompletionItem>) : NeovimEvent()
 
 @ApiMethod("wildmenu_select", since = 3)
 data class WildmenuSelect(val selected: Long) : NeovimEvent()

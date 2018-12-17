@@ -2,9 +2,7 @@ package io.neovim.apibuilder
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import io.neovim.types.IntPair
-import io.neovim.types.NeovimApiMetadata
-import io.neovim.types.NeovimApiType
+import io.neovim.types.*
 
 /**
  * @author dhleong
@@ -36,6 +34,15 @@ fun NeovimApiType.toTypeName(): TypeName = when (this) {
         } else ClassName("io.neovim", this)
     }
 }
+
+fun NeovimApiCallable.typeOfParam(param: NeovimApiParameter): TypeName =
+    fixedParamTypes[name]?.let { eventParams ->
+        eventParams[param.name]
+    } ?: param.type.toTypeName()
+
+fun builderOf(event: NeovimApiEvent): (ClassName) -> TypeSpec.Builder =
+    if (event.parameters.isEmpty()) TypeSpec.Companion::objectBuilder
+    else TypeSpec.Companion::classBuilder
 
 fun String.toCamelCase() = StringBuilder().also { builder ->
     split("_").forEachIndexed { index, part ->

@@ -121,8 +121,12 @@ class NJCore : BaseComponent, Disposable {
         val filePath = vFile.absoluteLocalFile.absolutePath
         nvim.command("e! $filePath")
 
-        editor.buffer = nvim.getCurrentBuf()
+        val buffer = nvim.getCurrentBuf()
+        editor.buffer = buffer
         logger.info("installed!")
+
+        // attach to the buffer
+        buffer.attach(false, emptyMap())
     }
 
     companion object {

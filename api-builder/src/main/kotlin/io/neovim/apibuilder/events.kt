@@ -2,7 +2,6 @@ package io.neovim.apibuilder
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.TypeSpec.Companion.classBuilder
 import io.neovim.rpc.Packet
 import io.neovim.types.NeovimApiEvent
 
@@ -38,17 +37,15 @@ fun createEvent(
 
         primaryConstructor(FunSpec.constructorBuilder().apply {
             for (param in event.parameters) {
-                addParameter(param.name, param.type.toTypeName())
-                addProperty(PropertySpec.builder(param.name, param.type.toTypeName()).apply {
-                    initializer(param.name)
+                val paramName = param.name.toCamelCase()
+                val paramType = event.typeOfParam(param)
+                addParameter(paramName, paramType)
+                addProperty(PropertySpec.builder(paramName, paramType).apply {
+                    initializer(paramName)
                 }.build())
             }
         }.build())
     }
 
 }.build()
-
-fun builderOf(event: NeovimApiEvent): (ClassName) -> TypeSpec.Builder =
-    if (event.parameters.isEmpty()) TypeSpec.Companion::objectBuilder
-    else TypeSpec.Companion::classBuilder
 
