@@ -95,6 +95,9 @@ class NJCore : BaseComponent, Disposable {
 
     private suspend fun uiAttach(nvim: NeovimApi, editor: Editor, vFile: VirtualFile, windowSize: IntPair) {
         Disposer.register(editor.disposable, Disposable {
+            corun {
+                editor.buffer?.detach()
+            }
             if (0 == refs.decrementAndGet()) {
                 logger.info("detach last")
                 corun {

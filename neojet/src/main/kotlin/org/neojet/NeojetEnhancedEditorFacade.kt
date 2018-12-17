@@ -148,41 +148,30 @@ class NeojetEnhancedEditorFacade private constructor(
      * Notifications from nvim
      */
 
-//    @Suppress("UNUSED_PARAMETER")
-//    @HandlesEvent
-//    fun clearToEol(event: EolClearEvent) {
-//        if (DumbService.getInstance(editor.project!!).isDumb) return
-//
-//        if (cursorOnStatusLine) {
-//            // TODO deal with status line?
-//            System.out.println("Drop CEOL on status")
-//            return
-//        } else if (cursorOnExLine) {
-//            // ??
-//            System.out.println("Clear EX to EOL after $cursorCol")
-//            exBuffer.deleteAfter(cursorCol)
-//            showStatusMessage(
-//                exBuffer.getLines().joinToString("\n")
-//            )
-//            return
-//        }
-//
-//        val logicalPosition = getLogicalPosition()
-//        val start = editor.logicalPositionToOffset(logicalPosition)
-//        val lineEndOffset = editor.getLineEndOffset(logicalPosition.line)
-//        val end = minOf(
-//            editor.document.textLength - 1,
-//            lineEndOffset
-//        )
-//
-//        if (end < start) {
-//            // usually for drawing status line, etc.
-//            return
-//        }
-//
-//        System.out.println("ClearEOL after $cursorCol @${logicalPosition.line}")
-//        editor.document.deleteString(start, end)
-//    }
+    @HandlesEvent
+    fun bufferLinesChanged(event: BufLinesEvent) {
+        println(event)
+
+        // this seems very wacky:
+        val startOffset = editor.getLineStartOffset(event.firstline.toInt())
+        val endOffset = editor.getLineStartOffset(event.lastline.toInt())
+        if (event.firstline == event.lastline) {
+            println("insert lines at $endOffset (${event.lastline})")
+            editor.document.insertString(endOffset, event.linedata.joinToString(
+                separator = "\n",
+                prefix = "\n"
+            ))
+        } else {
+            val replacement = event.linedata.joinToString("\n")
+            println("replace from $startOffset (${event.firstline}) - $endOffset (${event.lastline}) with `$replacement`")
+            editor.document.replaceString(
+                startOffset,
+                if (endOffset == startOffset) endOffset + 1
+                else endOffset,
+                replacement
+            )
+        }
+    }
 
     @HandlesEvent
     fun cursorMoved(event: CursorGoto) {
@@ -228,67 +217,12 @@ class NeojetEnhancedEditorFacade private constructor(
 
         if (!cursorInDocument) return
 
-        println("TODO put(${event.str}) @$cursorRow, $cursorCol")
+        // NOTE we handle changes to the document via the bufferLinesChanged
+        // event handler
 
         ++cursorCol
     }
 
-//        val line = cursorRow
-//        val lineText = event.bytesToCharSequence()
-//        if (cursorOnStatusLine) {
-//            // TODO deal with status line?
-//            System.out.println("Drop put @$line (cells.height=${cells.height()})")
-//            return
-//        } else if (cursorOnExLine) {
-//            // ??
-//            System.out.println("EX put @$cursorCol: $lineText")
-//            exBuffer.put(cursorCol, lineText)
-//            cursorCol += lineText.length
-//            showStatusMessage(
-//                exBuffer.getLines().joinToString("\n")
-//            )
-//            return
-//        }
-//
-//        exBuffer.isActive = false
-//        if (line > editor.lastLine
-//            && event.value.none { it.value !in setOf('~', '\n') }) {
-//            System.out.println("Ignore 'no line' placeholders")
-//            return
-//        }
-//
-//        val lineEndOffset = editor.getLineEndOffset(line, clamp = false)
-//        val start = editor.logicalPositionToOffset(LogicalPosition(line, cursorCol))
-//        val delta = lineEndOffset - start
-//        val end = minOf(
-//            editor.document.textLength - 1,
-//            start + minOf(event.value.size, delta)
-//        )
-//
-//        if (lineText.matches(Regex("~[ ]+$"))) {
-//            // delete start - 1 to get the \n
-//            System.out.println("DELETE LINE @$line")
-//            editor.document.deleteString(maxOf(0, start - 1), end)
-//            return
-//        }
-//
-//        if (lineEndOffset < start) {
-//            // usually for drawing status line, etc.
-//            System.out.println("Ignore put @$line,$cursorCol: `$lineText`")
-//            return
-//        }
-//
-//        // TODO better checking for deletes at end of document
-//        if (start == end) {
-//            System.out.println("INSERT($start) <- `$lineText`")
-//            editor.document.insertString(start, lineText)
-//        } else {
-//            System.out.println("REPLACE($start, $end) <- $lineText")
-//            editor.document.replaceString(start, end, lineText)
-//        }
-//        cursorCol += event.value.size
-//    }
-//
 //    @HandlesEvent
 //    fun scroll(event: ScrollEvent) {
 //        val region = currentScrollRegion
@@ -386,13 +320,6 @@ class NeojetEnhancedEditorFacade private constructor(
         editingDocumentFromVim = false
     }
 }
-
-
-//private fun PutEvent.bytesToCharSequence(): CharSequence {
-//    return value.fold(StringBuilder(value.size), { buffer, value ->
-//        buffer.append(value.value)
-//    })
-//}
 
 private fun Component.belongsTo(parentMaybe: JComponent): Boolean {
 
