@@ -1,9 +1,5 @@
 package io.neovim.events
 
-import java.lang.Class
-import kotlin.String
-import kotlin.collections.MutableMap
-
 /**
  * Creates a map of event name -> event type for use deserializing
  *
@@ -53,5 +49,8 @@ internal fun createEventTypesMap(): MutableMap<String, Class<out NeovimEvent>> {
     map["wildmenu_show"] = WildmenuShow::class.java
     map["wildmenu_select"] = WildmenuSelect::class.java
     map["wildmenu_hide"] = WildmenuHide::class.java
+    map["nvim_buf_lines_event"] = BufLinesEvent::class.java
+    map["nvim_buf_changedtick_event"] = BufChangedtickEvent::class.java
+    map["nvim_buf_detach_event"] = BufDetachEvent::class.java
     return map
 }

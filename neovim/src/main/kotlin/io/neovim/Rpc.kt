@@ -64,7 +64,7 @@ class Rpc internal constructor(
 
     suspend fun request(
         method: String,
-        args: Any? = null,
+        args: Any? = emptyList<Any?>(),
         resultType: Class<*>? = null
     ): ResponsePacket {
 

@@ -2,6 +2,10 @@ package io.neovim.types
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
+import io.neovim.ApiMethod
+import io.neovim.events.NeovimEvent
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.primaryConstructor
 
 /**
  * @author dhleong
@@ -61,7 +65,23 @@ data class NeovimApiEvent(
 
     override val since: Int,
     override val deprecatedSince: Int = -1
-) : NeovimApiCallable
+) : NeovimApiCallable {
+    companion object {
+        inline operator fun <reified T : NeovimEvent> invoke(): NeovimApiEvent {
+            val info = T::class.findAnnotation<ApiMethod>()!!
+            return NeovimApiEvent(
+                info.name,
+                parameters = T::class.primaryConstructor!!.parameters.map {
+                    NeovimApiParameter(
+                        it.toString(),
+                        it.name!!
+                    )
+                },
+                since = info.since
+            )
+        }
+    }
+}
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
 data class NeovimApiParameter(

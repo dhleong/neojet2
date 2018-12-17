@@ -2,11 +2,14 @@ package io.neovim.apibuilder
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import io.neovim.ApiMethod
 import io.neovim.NeovimApi
 import io.neovim.Rpc
+import io.neovim.apibuilder.builtins.bufferEventTypes
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.NeovimApiMetadata
 import java.io.File
+import kotlin.reflect.full.findAnnotation
 
 /**
  * @author dhleong
@@ -104,13 +107,11 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
 
                 addStatement("val map: %T = mutableMapOf()", returnType)
 
-                info.uiEvents.filter {
-                    !it.isDeprecated
-                }.forEach { event ->
+                allBuiltinEventTypes(info).forEach { (name, type) ->
                     addStatement(
                         "map[%S] = %T::class.java",
-                        event.name,
-                        ClassName("io.neovim.events", event.name.toCamelCase().capitalize())
+                        name,
+                        type
                     )
                 }
 
@@ -121,6 +122,23 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
         eventsMapFile.writeTo(outputRoot)
     }
 }
+
+private fun allBuiltinEventTypes(info: NeovimApiMetadata) = (
+    info.uiEvents.asSequence().filter {
+        !it.isDeprecated
+    }.map {
+        it.name to ClassName(
+            "io.neovim.events",
+            it.name.toCamelCase().capitalize()
+        )
+    }
+
+    +
+
+    bufferEventTypes.map {
+        it.findAnnotation<ApiMethod>()!!.name to it.asClassName()
+    }
+)
 
 private fun findOutputRoot(args: Array<String>): File {
     if (args.isNotEmpty()) {

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.neovim.DummyPacketsChannel
 import io.neovim.Rpc
 import io.neovim.events.*
+import io.neovim.types.Buffer
 import io.neovim.types.Tabpage
 import org.junit.Before
 import org.junit.Test
@@ -193,6 +194,22 @@ class NeovimObjectMapperTest {
         assert(event).isNotNull {
             it.isInstanceOf(DockingRequest::class.java)
         }
+    }
+
+    @Test fun `Handle manual-builtin notification types`() {
+        val original = NotificationWrapper(
+            name = "nvim_buf_detach_event",
+            args = listOf(
+                Buffer.create(rpc, 42)
+            )
+        )
+        val serialized = mapper.writeValueAsBytes(original)
+
+        val reconstituted = mapper.readValue(serialized, Packet::class.java)
+        assert(reconstituted).isNotNull {
+            it.isInstanceOf(BufDetachEvent::class.java)
+        }
+        assert((reconstituted as BufDetachEvent).buffer.id).isEqualTo(42L)
     }
 
     private fun readNotificationFromJson(json: String): Packet? =
