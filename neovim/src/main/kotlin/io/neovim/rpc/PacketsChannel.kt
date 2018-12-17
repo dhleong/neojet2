@@ -2,6 +2,7 @@ package io.neovim.rpc
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.neovim.Rpc
+import io.neovim.events.NeovimEvent
 
 /**
  * @author dhleong
@@ -13,7 +14,8 @@ interface PacketsChannel : AutoCloseable {
 }
 
 internal class ObjectMapperPacketsChannel(
-    private val channel: NeovimChannel
+    private val channel: NeovimChannel,
+    private val customEventTypes: Map<String, Class<out NeovimEvent>>
 ) : PacketsChannel, AutoCloseable by channel {
     private lateinit var mapper: ObjectMapper
 
@@ -21,7 +23,7 @@ internal class ObjectMapperPacketsChannel(
     private val output by lazy { channel.getOutputStream() }
 
     override fun setRpc(rpc: Rpc) {
-        mapper = createNeovimObjectMapper(rpc)
+        mapper = createNeovimObjectMapper(rpc, customEventTypes)
     }
 
     override fun readPacket(): Packet? =

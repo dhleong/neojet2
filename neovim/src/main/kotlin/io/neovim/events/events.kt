@@ -14,7 +14,7 @@ import io.neovim.rpc.Packet
 import io.neovim.types.Tabpage
 
 @JsonFormat(shape = JsonFormat.Shape.ARRAY)
-sealed class NeovimEvent : Packet {
+abstract class NeovimEvent : Packet {
     override val type: Packet.Type = Packet.Type.NOTIFICATION
 }
 

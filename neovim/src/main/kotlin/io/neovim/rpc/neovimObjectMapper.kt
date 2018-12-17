@@ -16,10 +16,11 @@ import java.io.IOException
  * @author dhleong
  */
 fun createNeovimObjectMapper(
-    rpc: Rpc
+    rpc: Rpc,
+    customEventTypes: Map<String, Class<out NeovimEvent>> = emptyMap()
 ): ObjectMapper {
 
-    val module = ObjectMapperModule(rpc)
+    val module = ObjectMapperModule(rpc, customEventTypes)
 
     val factory = MessagePackFactory().apply {
         disable(JsonParser.Feature.AUTO_CLOSE_SOURCE)
@@ -38,10 +39,11 @@ fun createNeovimObjectMapper(
 }
 
 private class ObjectMapperModule(
-    private val rpc: Rpc
+    private val rpc: Rpc,
+    customEventTypes: Map<String, Class<out NeovimEvent>>
 ) : SimpleModule() {
 
-    private val eventsMap = createEventTypesMap()
+    private val eventsMap = createEventTypesMap() + customEventTypes
     private val instancesMap = mutableMapOf<Class<out NeovimEvent>, NeovimEvent?>()
 
     init {

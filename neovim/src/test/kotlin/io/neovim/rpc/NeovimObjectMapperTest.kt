@@ -182,6 +182,19 @@ class NeovimObjectMapperTest {
         assert((update as TablineUpdate).current.id).isEqualTo(42L)
     }
 
+    @Test fun `Handle custom notification types`() {
+        mapper = createNeovimObjectMapper(rpc, mapOf(
+            "docking_request" to DockingRequest::class.java
+        ))
+
+        val event = readNotificationFromJson("""
+            "docking_request", ["ariel"]
+        """.trimIndent())
+        assert(event).isNotNull {
+            it.isInstanceOf(DockingRequest::class.java)
+        }
+    }
+
     private fun readNotificationFromJson(json: String): Packet? =
         readFromJson("[2, $json]")
 
@@ -191,3 +204,7 @@ class NeovimObjectMapperTest {
             Packet::class.java
         )
 }
+
+private class DockingRequest(
+    val station: String
+) : NeovimEvent()

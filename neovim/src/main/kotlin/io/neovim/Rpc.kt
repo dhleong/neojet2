@@ -17,8 +17,11 @@ class Rpc internal constructor(
     private val ids: IdAllocator = SimpleIdAllocator()
 ) : AutoCloseable, CoroutineScope {
 
-    constructor(channel: NeovimChannel) : this(
-        ObjectMapperPacketsChannel(channel)
+    constructor(
+        channel: NeovimChannel,
+        customEventTypes: Map<String, Class<out NeovimEvent>> = emptyMap()
+    ) : this(
+        ObjectMapperPacketsChannel(channel, customEventTypes)
     )
 
     init {

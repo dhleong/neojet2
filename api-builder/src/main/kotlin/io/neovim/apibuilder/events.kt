@@ -9,7 +9,7 @@ import io.neovim.types.NeovimApiEvent
  * @author dhleong
  */
 fun createBaseEventType(name: ClassName) = TypeSpec.classBuilder(name).apply {
-    addModifiers(KModifier.SEALED)
+    addModifiers(KModifier.ABSTRACT)
     addAnnotation(AnnotationSpec.builder(JsonFormat::class).apply {
         addMember("shape = JsonFormat.Shape.ARRAY")
     }.build())
