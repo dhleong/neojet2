@@ -11,10 +11,9 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import io.neovim.NeovimApi
-import io.neovim.events.CursorGoto
-import io.neovim.events.NeovimEvent
-import io.neovim.events.Put
-import io.neovim.events.Redraw
+import io.neovim.events.*
+import io.neovim.events.params.CursorShape
+import io.neovim.events.params.ModeInfo
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
 import io.neovim.types.height
@@ -97,8 +96,8 @@ class NeojetEnhancedEditorFacade private constructor(
     val nvim: NeovimApi = NJCore.instance.attach(editor, this)
     private val dispatcher = EventDispatcher(this)
 
-//    private lateinit var modes: List<ModeInfo>
-//    private var mode: ModeInfo? = null
+    private lateinit var modes: List<ModeInfo>
+    private var mode: ModeInfo? = null
 
     var editingDocumentFromVim = false
     var movingCursor = false
@@ -133,16 +132,9 @@ class NeojetEnhancedEditorFacade private constructor(
 //                System.out.println("${e.oldLength} -> ${e.newLength}")
 //            }
 //        }, this)
-
-//        subs.add(
-//            nvim.bufferedRedrawEvents()
-//                .subscribe(this::dispatchRedrawEvents)
-//        )
     }
 
     override fun dispose() {
-//        subs.dispose()
-
         editor.caretModel.removeCaretListener(caretMovedListener)
     }
 
@@ -198,7 +190,6 @@ class NeojetEnhancedEditorFacade private constructor(
 
         cursorRow = event.row.toInt()
         cursorCol = event.col.toInt()
-        System.out.println("CursorGoto($cursorRow, $cursorCol) / $cursorInDocument")
 
         if (cursorInDocument) {
             val newLogicalPosition = getLogicalPosition()
@@ -211,27 +202,25 @@ class NeojetEnhancedEditorFacade private constructor(
                 editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
             }
 
-            System.out.println(" --> goto $newLogicalPosition")
             editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
         }
 
         movingCursor = false
     }
 
-//    @HandlesEvent
-//    fun modeInfoSet(event: ModeInfoSet) {
-//        modes = event.value[0].modes
-//    }
+    @HandlesEvent
+    fun modeInfoSet(event: ModeInfoSet) {
+        modes = event.cursorStyles
+    }
 
-//    @HandlesEvent
-//    fun modeChange(event: ModeChange) {
-//        event.mode
-//        modes[event.value[0].modeIndex].let {
-//            mode = it
-//
-//            updateCursor(it)
-//        }
-//    }
+    @HandlesEvent
+    fun modeChange(event: ModeChange) {
+        modes[event.modeIdx.toInt()].let {
+            mode = it
+
+            updateCursor(it)
+        }
+    }
 
     @HandlesEvent
     fun put(event: Put) {
@@ -365,25 +354,9 @@ class NeojetEnhancedEditorFacade private constructor(
     // Is this sufficient?
     private fun getLogicalPosition() = LogicalPosition(cursorRow, cursorCol)
 
-//    private fun updateCursor(mode: ModeInfo) {
-//        val useBlock = (mode.cursorShape == ModeInfo.CursorShape.BLOCK)
-//        editor.settings.isBlockCursor = useBlock
-//    }
-
-//    private fun dispatchRedrawEvents(events: List<RedrawSubEvent<*>>) {
-//        editDocumentFromVim {
-//            events.forEach(dispatcher::dispatch)
-//        }
-//    }
-
-    private inline fun editDocumentFromVim(crossinline edits: () -> Unit) {
-        editingDocumentFromVim = true
-        inWriteAction {
-            runUndoTransparently {
-                edits()
-            }
-        }
-        editingDocumentFromVim = false
+    private fun updateCursor(mode: ModeInfo) {
+        val useBlock = (mode.cursorShape == CursorShape.BLOCK)
+        editor.settings.isBlockCursor = useBlock
     }
 
     fun dispatch(ev: NeovimEvent) {
@@ -401,6 +374,16 @@ class NeojetEnhancedEditorFacade private constructor(
                 logger.warning("Error dispatching $ev:\n${e.toStringWithStack()}")
             }
         }
+    }
+
+    private inline fun editDocumentFromVim(crossinline edits: () -> Unit) {
+        editingDocumentFromVim = true
+        inWriteAction {
+            runUndoTransparently {
+                edits()
+            }
+        }
+        editingDocumentFromVim = false
     }
 }
 
