@@ -20,13 +20,14 @@ class NvimWrapper(
     private var myInstance: NeovimApi? = null
     private var myRpc: Rpc? = null
 
+    val isConnected: Boolean
+        get() = myRpc != null
+
     @ExperimentalCoroutinesApi
     private fun open(): NeovimApi {
         if (myInstance != null) throw IllegalStateException()
 
-        val connection = channelFactory.create()
-
-        val rpc = Rpc(connection).also {
+        val rpc = createRpc(channelFactory).also {
             myRpc = it
         }
         return NeovimApi.create(rpc).also {
@@ -41,4 +42,15 @@ class NvimWrapper(
     }
 
     operator fun invoke(): NeovimApi = instance
+
+    private fun createRpc(channelFactory: NeovimChannel.Factory) =
+        rpcFactory?.invoke(channelFactory)
+            ?: Rpc(channelFactory.create())
+
+    companion object {
+        /**
+         * For injecting a custom [Rpc] factory in tests
+         */
+        var rpcFactory: ((NeovimChannel.Factory) -> Rpc)? = null
+    }
 }

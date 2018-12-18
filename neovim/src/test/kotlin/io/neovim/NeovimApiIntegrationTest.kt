@@ -23,7 +23,9 @@ class NeovimApiIntegrationTest {
     lateinit var rpc: Rpc
 
     @Before fun setUp() {
-        rpc = Rpc(EmbeddedChannel.Factory().create())
+        rpc = Rpc(EmbeddedChannel.Factory(
+            args = listOf("nvim", "-u", "NONE")
+        ).create())
         api = NeovimApi.create(rpc)
     }
 
@@ -75,6 +77,22 @@ class NeovimApiIntegrationTest {
         assert(nextEvent).isNotNull {
             it.isInstanceOf(NeovimEvent::class)
         }
+    }
+
+    @Test(timeout = 1000) fun `Attach to buffer`() = runBlockingUnit {
+//        val buf = api.getCurrentBuf()
+//        val attached = buf.attach(false, emptyMap())
+//        assert(attached).isTrue()
+
+//        rpc.send(RequestPacket(
+//            requestId = 0,
+//            method = "nvim_buf_attach",
+//            args = listOf(0, false, emptyMap<Any, Any>())
+//        ))
+//        delay(1000)
+
+        val result = rpc.request("nvim_buf_attach", listOf(0, false, emptyMap<Any, Any>()), Boolean::class.java)
+        assert(result.result as Boolean).isTrue()
     }
 }
 

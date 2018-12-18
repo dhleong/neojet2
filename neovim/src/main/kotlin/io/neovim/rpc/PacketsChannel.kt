@@ -31,6 +31,8 @@ internal class ObjectMapperPacketsChannel(
 
     override fun writePacket(packet: Packet) {
         mapper.writeValue(output, packet)
+        output.flush()
     }
 
 }
+

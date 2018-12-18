@@ -5,14 +5,23 @@ import io.neovim.rpc.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import java.io.IOException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 
+private fun coroutineName(): String {
+    val full = Thread.currentThread().name
+    val thread = full.substringBefore(" ")
+    val coroutine = full.substringAfterLast(" ")
+    return "$thread $coroutine"
+}
+fun log(message: String) = println("[${coroutineName()}] $message")
+
 /**
  * @author dhleong
  */
-class Rpc internal constructor(
+class Rpc(
     private val channel: PacketsChannel,
     private val ids: IdAllocator = SimpleIdAllocator()
 ) : AutoCloseable, CoroutineScope {
@@ -38,25 +47,36 @@ class Rpc internal constructor(
     private val availablePacketsLock = ReentrantLock()
 
     @ExperimentalCoroutinesApi
-    private val packetProducer = launch {
+    private val packetProducer = launch(Dispatchers.IO) {
         val input = this@Rpc.channel
 
         while (job.isActive) {
-            val packet = input.readPacket()
-                ?: continue // unknown packet; discard and try again
+            val packet = try {
+                log("await packet")
+                input.readPacket()
+                    ?: continue // unknown packet; discard and try again
+            } catch (e: IOException) {
+                e.printStackTrace()
+                break
+            }
 
+            log("packet << $packet")
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }
             allPackets.send(packet)
+            log("dispatched << $packet")
         }
+        log("quit loop")
     }
 
     private val outboundQueue = Channel<Packet>(capacity = 8)
-    private val packetSender = launch {
+    private val packetSender = launch(Dispatchers.IO) {
         val output = this@Rpc.channel
         for (packet in outboundQueue) {
+            log("<< write $packet")
             output.writePacket(packet)
+            log(">> write $packet")
         }
     }
 
@@ -78,9 +98,12 @@ class Rpc internal constructor(
             requestTypes[request.requestId] = resultType
         }
 
+        log("sending $request")
         send(request)
 
+        log("await response to $request")
         return firstPacketThat {
+            log("check(${request.requestId}) $it")
             it.requestId == request.requestId
         } ?: throw IllegalStateException("Never received response to $method")
     }
@@ -115,6 +138,7 @@ class Rpc internal constructor(
             }
         }
 
+        log("await packet from subscription")
         @Suppress("EXPERIMENTAL_API_USAGE")
         val channel = allPackets.openSubscription()
         for (packet in channel) {

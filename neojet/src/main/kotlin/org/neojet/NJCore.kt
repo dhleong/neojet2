@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.NeovimApi
+import io.neovim.log
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
 import io.neovim.types.IntPair
@@ -59,12 +60,21 @@ class NJCore : BaseComponent, Disposable {
             }
         }, this)
 
-        job = corun(On.UI) {
-            while (job.isActive) {
+        job = corun(On.UI, daemon = true) {
+            while (true) {
+                log("<< await event")
                 val ev = nvim().nextEvent() ?: break
+                log(">> await event: $ev")
 
-                EditorManager.getCurrent()?.dispatch(ev)
-                    ?: logger.warning("No editor to receive $ev")
+                val facade = EditorManager.getCurrent()
+                log(">>> dispatch event($facade): $ev")
+
+                if (!isTestMode) {
+                    facade?.dispatch(ev)
+                        ?: logger.warning("No editor to receive $ev")
+                }
+
+                log(".. event loop")
             }
             logger.info("Exit nvim event loop")
         }
@@ -84,10 +94,12 @@ class NJCore : BaseComponent, Disposable {
         val nvim = nvim()
 
         EditorManager.setActive(enhanced)
-        logger.info("attach($editor)")
-        corun(On.UI) {
+        logger.info("attach($editor) on ${Thread.currentThread()}")
+        corun {
+            logger.info(" >> attach($editor) on ${Thread.currentThread()}")
             nvim.command("setlocal nolist")
             uiAttach(nvim, editor, editor.document.vFile, enhanced.cells)
+            enhanced.setReady()
         }
 
         return nvim()
@@ -121,15 +133,19 @@ class NJCore : BaseComponent, Disposable {
             logger.info("attached")
         }
 
+        // FIXME if a swap file exists for the file, nvim
+        // will hang waiting for keyboard input...
         val filePath = vFile.absoluteLocalFile.absolutePath
         nvim.command("e! $filePath")
 
+        println("opened $filePath")
         val buffer = nvim.getCurrentBuf()
         editor.buffer = buffer
-        logger.info("installed!")
+        println("got buffer...")
 
         // attach to the buffer
         buffer.attach(false, emptyMap())
+        logger.info("installed!")
     }
 
     companion object {
@@ -138,5 +154,6 @@ class NJCore : BaseComponent, Disposable {
                 .getComponent(NJCore::class.java)
 
         var isTestMode: Boolean = false
+//        var isTestMode: Boolean = true
     }
 }
