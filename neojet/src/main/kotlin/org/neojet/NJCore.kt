@@ -12,6 +12,7 @@ import io.neovim.NeovimApi
 import io.neovim.rpc.channels.EmbeddedChannel
 import org.neojet.events.DefaultEventDaemon
 import org.neojet.events.EventDaemon
+import org.neojet.util.enhanced
 import java.awt.KeyboardFocusManager
 
 /**
@@ -30,7 +31,7 @@ class NJCore : BaseComponent, Disposable {
 
         EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
             override fun editorReleased(event: EditorFactoryEvent) {
-                event.editor.getUserData(neojetEnhancedEditorKey)?.let {
+                event.editor.enhanced?.let {
                     KeyboardFocusManager.getCurrentKeyboardFocusManager()
                         .removeKeyEventDispatcher(it.keyEventDispatcher)
                 }

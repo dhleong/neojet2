@@ -24,6 +24,12 @@ import javax.swing.KeyStroke
  * @author dhleong
  */
 abstract class NeojetIntegrationTestCase : UsefulTestCase() {
+    companion object {
+        // we use a singleton event daemon because it's stateless anyway,
+        // and NJCore is initialized as a singleton across this suite too....
+        private val events = TestableEventDaemon()
+    }
+
     private lateinit var myFixture: CodeInsightTestFixture
 
     private val testDataPath: String
@@ -31,12 +37,8 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
 
     protected lateinit var facade: NeojetEnhancedEditorFacade
 
-    private lateinit var events: TestableEventDaemon
-
     override fun setUp() {
         super.setUp()
-
-        events = TestableEventDaemon()
 
         NJCore.eventsFactory = EventDaemon.Factory { events }
         NJCore.providerFactory = DefaultNeovimProvider.Factory(
@@ -67,6 +69,8 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
         NJCore.eventsFactory = DefaultEventDaemon.Factory()
 
         super.tearDown()
+
+        events.drain()
     }
 
     @Suppress("MemberVisibilityCanPrivate")

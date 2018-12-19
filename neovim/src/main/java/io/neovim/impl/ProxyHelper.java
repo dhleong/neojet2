@@ -25,20 +25,20 @@ class ProxyHelper {
         Continuation<? super Object> continuation
     ) {
         final Object result = rpc.request(
-            method, args, resultType,
-            new ExceptionReportingContinuation(
-                continuation,
-                method,
-                args
-            )
+                method, args, resultType,
+                new ExceptionReportingContinuation(
+                        continuation,
+                        method,
+                        args
+                )
         );
 
         // the suspend fn may choose to not suspend; in that case,
         // we directly unpack the result here:
         return ExceptionReportingContinuation.Companion.unpackCoroutineResultInline(
-            result,
-            method,
-            args
+                result,
+                method,
+                args
         );
     }
 }

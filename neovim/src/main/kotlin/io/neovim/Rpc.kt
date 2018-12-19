@@ -9,6 +9,7 @@ import io.neovim.types.Buffer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.selects.select
 import java.io.IOException
 import java.util.concurrent.TimeoutException
@@ -29,7 +30,8 @@ fun log(message: String) = println("[${coroutineName()}] $message")
  */
 class Rpc(
     private val channel: PacketsChannel,
-    private val ids: IdAllocator = SimpleIdAllocator()
+    private val ids: IdAllocator = SimpleIdAllocator(),
+    private val responseTimeoutMillis: Long = 1500
 ) : AutoCloseable, CoroutineScope {
 
     constructor(
@@ -122,9 +124,11 @@ class Rpc(
             }
         }
 
-        return withTimeoutOrNull(1500) {
+        return withTimeoutOrNull(responseTimeoutMillis) {
             awaitResponseTo(method, request.requestId)
-        } ?: throw TimeoutException("Timed out awaiting response to $method($args)")
+        } ?: throw TimeoutException(
+            "Timed out awaiting response to #${request.requestId}: $method($args)"
+        )
     }
 
     private suspend fun awaitResponseTo(
@@ -155,7 +159,7 @@ class Rpc(
             async {
                 awaitMatchingEvent<BufChangedtickEvent> {
                     bufferId == 0L // "current buffer"
-                        || buffer.id == bufferId
+                        || it.buffer.id == bufferId
                 }
             }.onAwait { ResponsePacket(requestId = requestId, result = true) }
         }
@@ -165,7 +169,7 @@ class Rpc(
             async {
                 awaitMatchingEvent<BufLinesEvent> {
                     bufferId == 0L // "current buffer"
-                            || buffer.id == bufferId
+                            || it.buffer.id == bufferId
                 }
             }.onAwait { ResponsePacket(requestId = requestId, result = true) }
         }
@@ -185,13 +189,13 @@ class Rpc(
         async {
             awaitMatchingEvent<BufDetachEvent> {
                 bufferId == 0L // "current buffer"
-                    || buffer.id == bufferId
+                    || it.buffer.id == bufferId
             }
         }.onAwait { ResponsePacket(requestId = requestId, result = true) }
     }
 
     private suspend inline fun <reified T : NeovimEvent> awaitMatchingEvent(
-        matcher: T.() -> Boolean
+        crossinline matcher: (T) -> Boolean
     ): T {
         val event = firstPacketThat(matcher)
             ?: throw IllegalStateException()
@@ -219,6 +223,20 @@ class Rpc(
     }
 
     private suspend inline fun <reified T : Packet> firstPacketThat(
+        crossinline matching: (packet: T) -> Boolean
+    ): T? {
+        // open a channel *first*, in case the packet is broadcast while
+        // we're in the lock
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        val channel = allPackets.openSubscription()
+        return async {
+            channel.firstPacketThat(matching)
+        }.also {
+            it.invokeOnCompletion { channel.cancel() }
+        }.await()
+    }
+
+    private suspend inline fun <reified T : Packet> ReceiveChannel<Packet?>.firstPacketThat(
         matching: (packet: T) -> Boolean
     ): T? {
         // check the available buffered packets
@@ -233,11 +251,8 @@ class Rpc(
             }
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        val channel = allPackets.openSubscription()
-        for (packet in channel) {
+        for (packet in this) {
             if (packet is T && matching(packet)) {
-                channel.cancel()
                 availablePacketsLock.withLock {
                     availablePackets.remove(packet)
                 }
@@ -250,7 +265,6 @@ class Rpc(
             // request another packet, because ours isn't here yet
         }
 
-        channel.cancel()
         return null
     }
 

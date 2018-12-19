@@ -69,6 +69,7 @@ class DefaultNeovimProvider(
         Disposer.register(editor.disposable, Disposable {
             corun {
                 editor.buffer?.detach()
+                editor.buffer = null
             }
             if (0 == refs.decrementAndGet()) {
                 logger.info("detach last")
@@ -117,6 +118,7 @@ class DefaultNeovimProvider(
     }
 
     override fun close() {
+        logger.info("NeovimProvider.close()")
         nvim.close()
     }
 }

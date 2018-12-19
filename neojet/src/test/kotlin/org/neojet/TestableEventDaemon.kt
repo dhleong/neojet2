@@ -26,6 +26,10 @@ class TestableEventDaemon(
     }
 
     fun collectAndDispatch() {
+        drain(requireEditor = true)
+    }
+
+    fun drain(requireEditor: Boolean = false) {
         runBlocking {
             launch {
                 while (true) {
@@ -33,7 +37,15 @@ class TestableEventDaemon(
                         nvim.nextEvent()
                     } ?: break
 
-                    EditorManager.getCurrent()!!.dispatch(event)
+                    val editor = EditorManager.getCurrent()
+                    if (editor == null) {
+                        if (requireEditor) {
+                            throw IllegalStateException("No editor to dispatch events to")
+                        }
+                        continue
+                    }
+
+                    editor.dispatch(event)
                 }
             }.join()
         }
