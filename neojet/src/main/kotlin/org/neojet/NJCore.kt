@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.NeovimApi
+import io.neovim.events.NeovimEvent
 import io.neovim.log
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
@@ -62,9 +63,7 @@ class NJCore : BaseComponent, Disposable {
 
         job = corun(On.UI, daemon = true) {
             while (true) {
-                log("<< await event")
                 val ev = nvim().nextEvent() ?: break
-                log(">> await event: $ev")
 
                 val facade = EditorManager.getCurrent()
                 log(">>> dispatch event($facade): $ev")
@@ -72,13 +71,15 @@ class NJCore : BaseComponent, Disposable {
                 if (!isTestMode) {
                     facade?.dispatch(ev)
                         ?: logger.warning("No editor to receive $ev")
+                } else {
+                    queuedEvents.add(ev)
                 }
-
-                log(".. event loop")
             }
             logger.info("Exit nvim event loop")
         }
     }
+
+    val queuedEvents: MutableList<NeovimEvent> = mutableListOf()
 
     override fun disposeComponent() {
         nvim.close()
@@ -133,15 +134,23 @@ class NJCore : BaseComponent, Disposable {
             logger.info("attached")
         }
 
-        // FIXME if a swap file exists for the file, nvim
+        // NOTE if a swap file exists for the file, nvim
         // will hang waiting for keyboard input...
-        val filePath = vFile.absoluteLocalFile.absolutePath
+        nvim.command("set noswapfile")
+
+        val localFile = vFile.absoluteLocalFile
+        val filePath = localFile.absolutePath
         nvim.command("e! $filePath")
 
-        println("opened $filePath")
         val buffer = nvim.getCurrentBuf()
         editor.buffer = buffer
-        println("got buffer...")
+
+        if (!localFile.exists()) {
+            // we need to load the buffer manually
+            val lines = vFile.inputStream.bufferedReader().useLines { it.toList()  }
+            logger.info("sending ${lines.size} lines to nvim")
+            buffer.setLines(0, 0, false, lines)
+        }
 
         // attach to the buffer
         buffer.attach(false, emptyMap())

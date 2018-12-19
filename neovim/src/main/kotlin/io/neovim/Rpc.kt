@@ -1,10 +1,15 @@
 package io.neovim
 
+import io.neovim.events.BufChangedtickEvent
+import io.neovim.events.BufDetachEvent
+import io.neovim.events.BufLinesEvent
 import io.neovim.events.NeovimEvent
 import io.neovim.rpc.*
+import io.neovim.types.Buffer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.selects.select
 import java.io.IOException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -52,7 +57,6 @@ class Rpc(
 
         while (job.isActive) {
             val packet = try {
-                log("await packet")
                 input.readPacket()
                     ?: continue // unknown packet; discard and try again
             } catch (e: IOException) {
@@ -60,23 +64,18 @@ class Rpc(
                 break
             }
 
-            log("packet << $packet")
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }
             allPackets.send(packet)
-            log("dispatched << $packet")
         }
-        log("quit loop")
     }
 
     private val outboundQueue = Channel<Packet>(capacity = 8)
     private val packetSender = launch(Dispatchers.IO) {
         val output = this@Rpc.channel
         for (packet in outboundQueue) {
-            log("<< write $packet")
             output.writePacket(packet)
-            log(">> write $packet")
         }
     }
 
@@ -98,14 +97,107 @@ class Rpc(
             requestTypes[request.requestId] = resultType
         }
 
-        log("sending $request")
         send(request)
 
-        log("await response to $request")
-        return firstPacketThat {
-            log("check(${request.requestId}) $it")
-            it.requestId == request.requestId
-        } ?: throw IllegalStateException("Never received response to $method")
+        // see: https://github.com/neovim/neovim/issues/8634
+        when (method) {
+            "nvim_buf_attach" -> {
+                val argsList = args as List<Any?>
+                val bufferId = argsList[0].toBufferId()
+                return fakeBufAttachResponse(
+                    method, request.requestId,
+                    bufferId = bufferId,
+                    returnBuffer = argsList[1] as Boolean
+                )
+            }
+
+            "nvim_buf_detach" -> {
+                val argsList = args as List<Any?>
+                val bufferId = argsList[0].toBufferId()
+                return fakeBufDetachResponse(
+                    method, request.requestId,
+                    bufferId = bufferId
+                )
+            }
+        }
+
+        return awaitResponseTo(method, request.requestId)
+    }
+
+    private suspend fun awaitResponseTo(
+        method: String, requestId: Long
+    ) = firstPacketThat<ResponsePacket> {
+        it.requestId == requestId
+    } ?: throw IllegalStateException("Never received response to $method")
+
+    private fun Any?.toBufferId() =
+        (this as? Buffer)?.id
+            ?: (this as? Long)
+            ?: (this as? Int)?.toLong()
+            ?: throw IllegalArgumentException("No buffer id? got: $this")
+
+    private suspend fun fakeBufAttachResponse(
+        method: String,
+        requestId: Long,
+        returnBuffer: Boolean,
+        bufferId: Long
+    ): ResponsePacket = select {
+        // prefer a proper response...
+        async {
+            awaitResponseTo(method, requestId)
+        }.onAwait { it }
+
+        // ... but also accept we see nvim_buf_changed_tick
+        if (!returnBuffer) {
+            async {
+                awaitMatchingEvent<BufChangedtickEvent> {
+                    bufferId == 0L // "current buffer"
+                        || buffer.id == bufferId
+                }
+            }.onAwait { ResponsePacket(requestId = requestId, result = true) }
+        }
+
+        // ... or nvim_buf_lines_event
+        if (returnBuffer) {
+            async {
+                awaitMatchingEvent<BufLinesEvent> {
+                    bufferId == 0L // "current buffer"
+                            || buffer.id == bufferId
+                }
+            }.onAwait { ResponsePacket(requestId = requestId, result = true) }
+        }
+    }
+
+    private suspend fun fakeBufDetachResponse(
+        method: String,
+        requestId: Long,
+        bufferId: Long
+    ): ResponsePacket = select {
+        // prefer a proper response...
+        async {
+            awaitResponseTo(method, requestId)
+        }.onAwait { it }
+
+        // ... but also accept we see nvim_buf_detached
+        async {
+            awaitMatchingEvent<BufDetachEvent> {
+                bufferId == 0L // "current buffer"
+                    || buffer.id == bufferId
+            }
+        }.onAwait { ResponsePacket(requestId = requestId, result = true) }
+    }
+
+    private suspend inline fun <reified T : NeovimEvent> awaitMatchingEvent(
+        matcher: T.() -> Boolean
+    ): T {
+        val event = firstPacketThat(matcher)
+            ?: throw IllegalStateException()
+
+        // wait a bit in case a real response comes in
+        delay(200)
+
+        // and, if we're still around, return the event:
+        return event
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -138,7 +230,6 @@ class Rpc(
             }
         }
 
-        log("await packet from subscription")
         @Suppress("EXPERIMENTAL_API_USAGE")
         val channel = allPackets.openSubscription()
         for (packet in channel) {

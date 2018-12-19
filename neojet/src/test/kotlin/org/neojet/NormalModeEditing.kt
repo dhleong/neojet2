@@ -18,7 +18,8 @@ class NormalModeEditing : NeojetTestCase() {
             }
         """.trimIndent()
     ) {
-        dispatchLinesEvent(0, 1, lines = emptyList())
+//        dispatchLinesEvent(0, 1, lines = emptyList())
+        typeText(keys("ggdd"))
     }
 
     private fun dispatchLinesEvent(

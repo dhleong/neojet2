@@ -14,6 +14,7 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import io.neovim.log
+import kotlinx.coroutines.runBlocking
 import org.neojet.nvim.NvimWrapper
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -79,6 +80,9 @@ abstract class NeojetTestCase : UsefulTestCase() {
         log("tearDown")
         enqueueResponse(true) // buffer.detach
         enqueueResponse() // uiDetach
+        runBlocking {
+            NJCore.instance.nvim().command("bdelete!")
+        }
         myFixture.tearDown()
         facade.dispose()
 
@@ -118,6 +122,18 @@ abstract class NeojetTestCase : UsefulTestCase() {
                 0, 0, key.modifiers, key.keyCode, key.keyChar
             ))
         }
+
+        // give neovim some time to send us events
+        Thread.sleep(1000)
+
+        val events = NJCore.instance.queuedEvents.toList()
+        NJCore.instance.queuedEvents.clear()
+        println("${events.size} queued events waiting")
+        events.forEach {
+            println("dispatch>> $it")
+            facade.dispatch(it)
+        }
+
         return editor
     }
 

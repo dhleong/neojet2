@@ -300,16 +300,20 @@ class NeojetEnhancedEditorFacade private constructor(
         editDocumentFromVim {
             if (ev is Redraw) {
                 for (child in ev.events) {
-                    dispatch(child)
+                    dispatchImpl(child)
                 }
                 return@editDocumentFromVim
             }
 
-            try {
-                dispatcher.dispatch(ev)
-            } catch (e: Throwable) {
-                logger.warning("Error dispatching $ev:\n${e.toStringWithStack()}")
-            }
+            dispatchImpl(ev)
+        }
+    }
+
+    private fun dispatchImpl(ev: NeovimEvent) {
+        try {
+            dispatcher.dispatch(ev)
+        } catch (e: Throwable) {
+            logger.warning("Error dispatching $ev:\n${e.toStringWithStack()}")
         }
     }
 
