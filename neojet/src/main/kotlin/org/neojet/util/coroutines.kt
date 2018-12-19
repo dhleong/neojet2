@@ -1,7 +1,9 @@
 package org.neojet.util
 
-import kotlinx.coroutines.*
-import org.neojet.NJCore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.logging.Logger
@@ -24,13 +26,6 @@ inline fun corun(
     val context: CoroutineContext = when (on) {
         On.BG -> Dispatchers.IO
         On.UI -> Dispatchers.Main
-    }
-
-    if (NJCore.isTestMode) {
-        runBlocking(context) {
-            safely(block)
-        }
-        return Job()
     }
 
     return GlobalScope.launch(context) {

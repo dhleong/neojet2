@@ -64,14 +64,10 @@ class NJCore : BaseComponent, Disposable {
         return provider.attach(editor, enhanced)
     }
 
-
     companion object {
         val instance: NJCore
             get() = ApplicationManager.getApplication()
                 .getComponent(NJCore::class.java)
-
-        var isTestMode: Boolean = false
-//        var isTestMode: Boolean = true
 
         val defaultProviderFactory = DefaultNeovimProvider.Factory(
 //            SocketChannel.Factory("localhost", 7777),

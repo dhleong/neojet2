@@ -3,7 +3,7 @@ package org.neojet
 /**
  * @author dhleong
  */
-class NormalModeEditing : NeojetIntegrationTestCase() {
+class NormalModeEditingIntegration : NeojetIntegrationTestCase() {
     fun `test Delete line`() = doTest(
         before = """
             class Test {

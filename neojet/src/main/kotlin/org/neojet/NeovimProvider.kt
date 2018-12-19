@@ -22,6 +22,9 @@ interface NeovimProvider : AutoCloseable {
 
     val api: NeovimApi
 
+    /**
+     * Implementations MUST call [NeojetEnhancedEditorFacade.setReady]
+     */
     fun attach(editor: Editor, facade: NeojetEnhancedEditorFacade): NeovimApi
 }
 
@@ -43,14 +46,15 @@ class DefaultNeovimProvider(
     override val api: NeovimApi
         get() = nvim.instance
 
-    override fun attach(editor: Editor, enhanced: NeojetEnhancedEditorFacade): NeovimApi {
+    override fun attach(editor: Editor, facade: NeojetEnhancedEditorFacade): NeovimApi {
         val nvim = nvim()
 
         logger.info("attach($editor) on ${Thread.currentThread()}")
         corun {
             logger.info(" >> attach($editor) on ${Thread.currentThread()}")
             nvim.command("setlocal nolist")
-            uiAttach(nvim, editor, editor.document.vFile, enhanced.cells)
+            uiAttach(nvim, editor, editor.document.vFile, facade.cells)
+            facade.setReady()
         }
 
         return nvim

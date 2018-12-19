@@ -17,6 +17,7 @@ import io.neovim.events.params.ModeInfo
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
 import io.neovim.types.height
+import kotlinx.coroutines.channels.Channel
 import org.neojet.events.EventDispatchTarget
 import org.neojet.events.EventDispatcher
 import org.neojet.events.HandlesEvent
@@ -95,6 +96,7 @@ class NeojetEnhancedEditorFacade private constructor(
     }
 
     private val logger: Logger = Logger.getLogger("NeoJet:EditorFacade")
+    private val readyChannel = Channel<Unit>(Channel.CONFLATED)
 
     // TODO handle resize
     var cells = editor.getTextCells()
@@ -311,6 +313,15 @@ class NeojetEnhancedEditorFacade private constructor(
             dispatchImpl(ev)
         }
     }
+
+    fun setReady() {
+        readyChannel.offer(Unit)
+    }
+
+    /**
+     * Mostly used by tests to wait for this facade to be ready to use...
+     */
+    suspend fun awaitReady() = readyChannel.receive()
 
     private fun dispatchImpl(ev: NeovimEvent) {
         try {

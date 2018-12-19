@@ -38,7 +38,6 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
 
         events = TestableEventDaemon()
 
-        NJCore.isTestMode = true
         NJCore.eventsFactory = EventDaemon.Factory { events }
         NJCore.providerFactory = DefaultNeovimProvider.Factory(
             EmbeddedChannel.Factory(args = listOf("-u", "NONE"))
@@ -64,7 +63,6 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
         myFixture.tearDown()
         facade.dispose()
 
-        NJCore.isTestMode = false
         NJCore.providerFactory = NJCore.defaultProviderFactory
         NJCore.eventsFactory = DefaultEventDaemon.Factory()
 
@@ -126,6 +124,11 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
 
     fun doTest(before: String, after: String, block: () -> Unit) {
         configureByText(before)
+
+        runBlocking {
+            facade.awaitReady()
+        }
+
         CommandProcessor.getInstance().executeCommand(myFixture.project, {
             ApplicationManager.getApplication().runWriteAction {
                 // always ensure we start at the top of the file
