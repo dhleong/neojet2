@@ -166,7 +166,7 @@ class NeojetEnhancedEditorFacade private constructor(
             println("insert lines at $endOffset (${event.lastline})")
             editor.document.insertString(endOffset, event.linedata.joinToString(
                 separator = "\n",
-                prefix = "\n"
+                postfix = "\n"
             ))
         } else {
             val replacement = event.linedata.joinToString("\n")
