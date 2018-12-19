@@ -19,7 +19,6 @@ enum class On {
  */
 inline fun corun(
     on: On = On.BG,
-    daemon: Boolean = false,
     crossinline block: suspend () -> Unit
 ): Job {
     val context: CoroutineContext = when (on) {
@@ -27,15 +26,11 @@ inline fun corun(
         On.UI -> Dispatchers.Main
     }
 
-    if (NJCore.isTestMode && !daemon) {
+    if (NJCore.isTestMode) {
         runBlocking(context) {
             safely(block)
         }
         return Job()
-    } else if (NJCore.isTestMode) {
-        return GlobalScope.launch(Dispatchers.IO) { safely(block) }
-//    } else if (NJCore.isTestMode) {
-//        return Job()
     }
 
     return GlobalScope.launch(context) {

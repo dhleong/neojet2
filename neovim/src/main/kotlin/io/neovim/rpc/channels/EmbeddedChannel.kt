@@ -43,11 +43,23 @@ class EmbeddedChannel(
 
     data class Factory(
         private val path: String = "/usr/bin/env",
-        private val args: List<String> = listOf("nvim")
+        private val args: List<String> = emptyList()
     ) : NeovimChannel.Factory {
 
         override fun create(): NeovimChannel {
             val invocation = mutableListOf(path)
+
+            // using the `env` path, the first argument must be `nvim`.
+            // this simplifies the `args` usage to just be any args
+            // to pass to nvim
+            if (
+                path == "/usr/bin/env"
+                && (args.isEmpty()
+                    || args[0] != "nvim")
+            ) {
+                invocation += "nvim"
+            }
+
             invocation += args
             if ("--embed" !in invocation) {
                 invocation += "--embed"

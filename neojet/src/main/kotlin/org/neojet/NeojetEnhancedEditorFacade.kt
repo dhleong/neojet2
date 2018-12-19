@@ -17,7 +17,6 @@ import io.neovim.events.params.ModeInfo
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
 import io.neovim.types.height
-import kotlinx.coroutines.channels.Channel
 import org.neojet.events.EventDispatchTarget
 import org.neojet.events.EventDispatcher
 import org.neojet.events.HandlesEvent
@@ -47,8 +46,14 @@ class NeojetEnhancedEditorFacade private constructor(
                 throw IllegalArgumentException("$editor is not an EditorEx or TextEditor")
             }
 
+            val existing = editor.enhanced
+            if (existing != null) {
+                // idempotency
+                return existing
+            }
+
             val facade = NeojetEnhancedEditorFacade(editor)
-            editor.putUserData(neojetEnhancedEditorKey, facade)
+            editor.enhanced = facade
 
             if (editor is EditorImpl) {
                 Disposer.register(editor.disposable, facade)
@@ -76,12 +81,12 @@ class NeojetEnhancedEditorFacade private constructor(
 
     private val caretMovedListener = object : CaretListener {
         override fun caretPositionChanged(ev: CaretEvent) {
-            if (movingCursor) return // nvim-initiated
             if (editor.buffer == null) return // not installed/buffer not loaded yet
 
             val line = ev.newPosition.line + 1 // 0-indexed to 1-indexed
             val column = ev.newPosition.column
 
+            println("caret moved! notifying nvim")
             corun {
                 nvim.getCurrentWin()
                     .setCursor(IntPair(line, column))
@@ -90,8 +95,6 @@ class NeojetEnhancedEditorFacade private constructor(
     }
 
     private val logger: Logger = Logger.getLogger("NeoJet:EditorFacade")
-
-    private val readyChannel = Channel<Unit>(Channel.CONFLATED)
 
     // TODO handle resize
     var cells = editor.getTextCells()
@@ -103,7 +106,6 @@ class NeojetEnhancedEditorFacade private constructor(
     private var mode: ModeInfo? = null
 
     var editingDocumentFromVim = false
-    var movingCursor = false
     private var cursorRow: Int = 0
     private var cursorCol: Int = 0
 
@@ -178,12 +180,15 @@ class NeojetEnhancedEditorFacade private constructor(
 
     @HandlesEvent
     fun cursorMoved(event: CursorGoto) {
-        movingCursor = true
-
         cursorRow = event.row.toInt()
         cursorCol = event.col.toInt()
 
-        if (cursorInDocument) {
+        if (!cursorInDocument) {
+            // nothing to see here
+            return
+        }
+
+        withoutCaretNotifications {
             val newLogicalPosition = getLogicalPosition()
 
             val lineEndOffset = editor.getLineEndOffset(newLogicalPosition.line)
@@ -196,8 +201,6 @@ class NeojetEnhancedEditorFacade private constructor(
 
             editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
         }
-
-        movingCursor = false
     }
 
     @HandlesEvent
@@ -327,12 +330,15 @@ class NeojetEnhancedEditorFacade private constructor(
         editingDocumentFromVim = false
     }
 
-    fun setReady() {
-        readyChannel.offer(Unit)
-    }
-
-    suspend fun awaitReady() {
-        readyChannel.receive()
+    private inline fun withoutCaretNotifications(block: () -> Unit) {
+        // just remove the caret listener while we adjust the position from nvim
+        // to avoid infinite loops
+        editor.caretModel.removeCaretListener(caretMovedListener)
+        try {
+            block()
+        } finally {
+            editor.caretModel.addCaretListener(caretMovedListener)
+        }
     }
 }
 

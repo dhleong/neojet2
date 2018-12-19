@@ -15,6 +15,9 @@ annotation class HandlesEvent
 internal typealias EventHandler = (event: NeovimEvent) -> Unit
 
 /**
+ * Dispatches events to methods on a target based on the presence
+ * of the [HandlesEvent] annotation
+ *
  * @author dhleong
  */
 class EventDispatcher(

@@ -11,6 +11,7 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
 import java.io.IOException
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
@@ -121,7 +122,9 @@ class Rpc(
             }
         }
 
-        return awaitResponseTo(method, request.requestId)
+        return withTimeoutOrNull(1500) {
+            awaitResponseTo(method, request.requestId)
+        } ?: throw TimeoutException("Timed out awaiting response to $method($args)")
     }
 
     private suspend fun awaitResponseTo(

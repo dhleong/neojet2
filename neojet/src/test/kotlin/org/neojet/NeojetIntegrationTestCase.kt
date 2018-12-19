@@ -13,16 +13,17 @@ import com.intellij.testFramework.UsefulTestCase
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
-import io.neovim.log
+import io.neovim.rpc.channels.EmbeddedChannel
 import kotlinx.coroutines.runBlocking
-import org.neojet.nvim.NvimWrapper
+import org.neojet.events.DefaultEventDaemon
+import org.neojet.events.EventDaemon
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
 /**
  * @author dhleong
  */
-abstract class NeojetTestCase : UsefulTestCase() {
+abstract class NeojetIntegrationTestCase : UsefulTestCase() {
     private lateinit var myFixture: CodeInsightTestFixture
 
     private val testDataPath: String
@@ -30,31 +31,18 @@ abstract class NeojetTestCase : UsefulTestCase() {
 
     protected lateinit var facade: NeojetEnhancedEditorFacade
 
-//    protected lateinit var packetsChannel: DummyPacketsChannel
-//    protected lateinit var rpc: Rpc
-//    protected lateinit var responseIds: IdAllocator
+    private lateinit var events: TestableEventDaemon
 
     override fun setUp() {
         super.setUp()
 
-//        responseIds = SimpleIdAllocator()
-//        packetsChannel = DummyPacketsChannel()
-//        rpc = Rpc(packetsChannel)
-        enqueueResponse() // setlocal nolist
-        enqueueResponse() // laststatus=0
-        enqueueResponse() // uiAttach()
-        enqueueResponse() // e! $file
-        enqueueResponse(
-            // getCurrentBuf
-//            Buffer.create(rpc, 1)
-        )
-        enqueueResponse(true) // buffer.attach()
+        events = TestableEventDaemon()
 
-        // FIXME in test mode we load files that don't exist on the disk,
-        // so without feeding the buffer to vim somehow (which we *could* do)
-        // things explode with real vim...
         NJCore.isTestMode = true
-//        NvimWrapper.rpcFactory = { rpc }
+        NJCore.eventsFactory = EventDaemon.Factory { events }
+        NJCore.providerFactory = DefaultNeovimProvider.Factory(
+            EmbeddedChannel.Factory(args = listOf("-u", "NONE"))
+        )
 
         val factory = IdeaTestFixtureFactory.getFixtureFactory()
         val projectDescriptor = LightProjectDescriptor.EMPTY_PROJECT_DESCRIPTOR
@@ -69,32 +57,18 @@ abstract class NeojetTestCase : UsefulTestCase() {
         }
     }
 
-    protected fun enqueueResponse(result: Any? = null) {
-//        packetsChannel.enqueueIncoming(ResponsePacket(
-//            requestId = responseIds.next(),
-//            result = result
-//        ))
-    }
-
     override fun tearDown() {
-        log("tearDown")
-        enqueueResponse(true) // buffer.detach
-        enqueueResponse() // uiDetach
         runBlocking {
-            NJCore.instance.nvim().command("bdelete!")
+            NJCore.instance.nvim.command("bdelete!")
         }
         myFixture.tearDown()
         facade.dispose()
 
         NJCore.isTestMode = false
-        NvimWrapper.rpcFactory = null
+        NJCore.providerFactory = NJCore.defaultProviderFactory
+        NJCore.eventsFactory = DefaultEventDaemon.Factory()
 
         super.tearDown()
-    }
-
-    protected fun typeTextInFile(keys: List<KeyStroke>, fileContents: String): Editor {
-        configureByText(fileContents)
-        return typeText(keys)
     }
 
     @Suppress("MemberVisibilityCanPrivate")
@@ -117,22 +91,12 @@ abstract class NeojetTestCase : UsefulTestCase() {
     protected fun typeText(keys: List<KeyStroke>): Editor {
         val editor = myFixture.editor
         for (key in keys) {
-            enqueueResponse(1)
             facade.dispatchTypedKey(KeyEvent(editor.component,
                 0, 0, key.modifiers, key.keyCode, key.keyChar
             ))
         }
 
-        // give neovim some time to send us events
-        Thread.sleep(1000)
-
-        val events = NJCore.instance.queuedEvents.toList()
-        NJCore.instance.queuedEvents.clear()
-        println("${events.size} queued events waiting")
-        events.forEach {
-            println("dispatch>> $it")
-            facade.dispatch(it)
-        }
+        events.collectAndDispatch()
 
         return editor
     }
@@ -150,21 +114,26 @@ abstract class NeojetTestCase : UsefulTestCase() {
         assertEquals(expected, selected)
     }
 
-    fun doTest(keys: List<KeyStroke>, before: String, after: String) {
+    fun doTest(before: String, typeKeys: String, after: String) {
+        doTest(before, keys(typeKeys), after)
+    }
+
+    fun doTest(before: String, type: List<KeyStroke>, after: String) {
         doTest(before, after) {
-            typeText(keys)
+            typeText(type)
         }
     }
 
     fun doTest(before: String, after: String, block: () -> Unit) {
-        log("doTest")
         configureByText(before)
-        log("doTest:configured")
         CommandProcessor.getInstance().executeCommand(myFixture.project, {
             ApplicationManager.getApplication().runWriteAction {
-                log("<< block")
+                // always ensure we start at the top of the file
+                // TODO if we properly ensure the caret is sync'd *to* nvim on buffer open
+                // this might be unnecessary
+                typeText(keys("gg"))
+
                 block()
-                log(">> block")
             }
         }, "testCommand", "org.neojet")
         myFixture.checkResult(after)

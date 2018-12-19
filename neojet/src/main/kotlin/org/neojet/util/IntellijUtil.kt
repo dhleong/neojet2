@@ -17,7 +17,9 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
+import org.neojet.NeojetEnhancedEditorFacade
 import org.neojet.neojetBufferKey
+import org.neojet.neojetEnhancedEditorKey
 import java.awt.Font
 import java.io.File
 import javax.swing.JComponent
@@ -34,6 +36,12 @@ var Editor.buffer: Buffer?
     get() = getUserData(neojetBufferKey)
     set(value) {
         putUserData(neojetBufferKey, value)
+    }
+
+var Editor.enhanced: NeojetEnhancedEditorFacade?
+    get() = getUserData(neojetEnhancedEditorKey)
+    set(value) {
+        putUserData(neojetEnhancedEditorKey, value)
     }
 
 val Editor.disposable: Disposable
