@@ -59,4 +59,22 @@ class NormalModeEditingIntegration : NeojetIntegrationTestCase() {
         """.trimIndent()
     )
 
+    fun `test Open new line`() = doTest(
+        before = """
+            class Test {
+                void foo() {
+                }
+            }
+        """.trimIndent(),
+
+        typeKeys = "jjo",
+
+        after = """
+            class Test {
+                void foo() {
+
+                }
+            }
+        """.trimIndent()
+    )
 }

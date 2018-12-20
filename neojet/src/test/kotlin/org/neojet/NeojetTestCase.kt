@@ -1,107 +1,67 @@
 package org.neojet
 
-import com.intellij.ide.highlighter.JavaFileType
-import com.intellij.ide.highlighter.XmlFileType
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileTypes.LanguageFileType
-import com.intellij.openapi.fileTypes.PlainTextFileType
-import com.intellij.testFramework.LightProjectDescriptor
-import com.intellij.testFramework.UsefulTestCase
-import com.intellij.testFramework.fixtures.CodeInsightTestFixture
-import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
-import org.neojet.events.EventDaemon
+import com.nhaarman.mockito_kotlin.mock
+import io.neovim.NeovimApi
+import io.neovim.events.BufLinesEvent
+import io.neovim.events.CursorGoto
+import org.neojet.util.enhanced
 
 /**
  * @author dhleong
  */
-abstract class NeojetTestCase : UsefulTestCase() {
-    companion object {
-        // we use a singleton event daemon because it's stateless anyway,
-        // and NJCore is initialized as a singleton across this suite too....
-        internal val events = TestableEventDaemon()
-    }
+abstract class NeojetTestCase : AbstractNeojetTestCase() {
 
-    protected lateinit var myFixture: CodeInsightTestFixture
-
-    private val testDataPath: String
-        get() = PathManager.getHomePath() + "/community/plugins/neojet/testData"
-
-    protected lateinit var facade: NeojetEnhancedEditorFacade
+    protected lateinit var nvim: NeovimApi
 
     override fun setUp() {
+        nvim = mock {  }
+
         super.setUp()
-
-        NJCore.eventsFactory = EventDaemon.Factory { events }
-        NJCore.providerFactory = createNeovimProviderFactory()
-
-        val factory = IdeaTestFixtureFactory.getFixtureFactory()
-        val projectDescriptor = LightProjectDescriptor.EMPTY_PROJECT_DESCRIPTOR
-        val fixtureBuilder = factory.createLightFixtureBuilder(projectDescriptor)
-        val fixture = fixtureBuilder.fixture
-        myFixture = IdeaTestFixtureFactory.getFixtureFactory().createCodeInsightFixture(fixture,
-            LightTempDirTestFixtureImpl(true)
-        ).also {
-
-            it.setUp()
-            it.testDataPath = testDataPath
-        }
     }
 
-    protected open fun createNeovimProviderFactory(): NeovimProvider.Factory =
-        TODO("testable neovim provider")
+    override fun createNeovimProviderFactory(): NeovimProvider.Factory =
+        object : NeovimProvider.Factory {
+            override fun create() = object : NeovimProvider {
+                override val api: NeovimApi
+                    get() = nvim
 
-    override fun tearDown() {
-        myFixture.tearDown()
-        facade.dispose()
-    }
+                override fun attach(editor: Editor, facade: NeojetEnhancedEditorFacade): NeovimApi {
+                    editor.enhanced = facade
+                    facade.setReady()
+                    return api
+                }
 
-    @Suppress("MemberVisibilityCanPrivate")
-    protected open fun configureByText(
-        content: String,
-        fileType: LanguageFileType = PlainTextFileType.INSTANCE
-    ): Editor {
-        myFixture.configureByText(fileType, content)
-        facade = NeojetEnhancedEditorFacade.install(myFixture.editor)
-        return myFixture.editor
-    }
-
-    protected fun configureByJavaText(content: String) =
-        configureByText(content, JavaFileType.INSTANCE)
-
-    protected fun configureByXmlText(content: String) =
-        configureByText(content, XmlFileType.INSTANCE)
-
-    fun assertOffset(vararg expectedOffsets: Int) {
-        val carets = myFixture.editor.caretModel.allCarets
-        assertEquals("Wrong amount of carets", expectedOffsets.size, carets.size)
-        for (i in expectedOffsets.indices) {
-            assertEquals(expectedOffsets[i], carets[i].offset)
-        }
-    }
-
-    fun assertSelection(expected: String?) {
-        val selected = myFixture.editor.selectionModel.selectedText
-        assertEquals(expected, selected)
-    }
-
-    fun doTest(before: String, after: String, block: () -> Unit) {
-        configureByText(before)
-
-        CommandProcessor.getInstance().executeCommand(myFixture.project, {
-            ApplicationManager.getApplication().runWriteAction {
-                onPreTest()
-                block()
-                onPostTest()
+                override fun close() { }
             }
-        }, "testCommand", "org.neojet")
-        myFixture.checkResult(after)
-    }
+        }
 
-    protected open fun onPreTest() { }
-    protected open fun onPostTest() { }
+    /*
+        Utils
+     */
+
+    /**
+     * In case you want the caret as a visual cue for whitespace,
+     * but don't actually want to verify its position
+     */
+    protected fun String.removeCaret() = replace("<caret>", "")
+
+    protected fun dispatchBufferLinesChanged(
+        firstLine: Long,
+        lastLine: Long,
+        lines: List<String>
+    ) = facade.bufferLinesChanged(BufLinesEvent(
+        mock {},
+        changedtick = 1,
+        firstline = firstLine,
+        lastline = lastLine,
+        linedata = lines,
+        more = false
+    ))
+
+    protected fun dispatchCursorGoto(
+        row: Int,
+        col: Int
+    ) = facade.cursorMoved(CursorGoto(row.toLong(), col.toLong()))
 
 }

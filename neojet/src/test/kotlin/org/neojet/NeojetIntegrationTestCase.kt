@@ -12,7 +12,7 @@ import javax.swing.KeyStroke
 /**
  * @author dhleong
  */
-abstract class NeojetIntegrationTestCase : NeojetTestCase() {
+abstract class NeojetIntegrationTestCase : AbstractNeojetTestCase() {
 
     override fun createNeovimProviderFactory(): NeovimProvider.Factory =
         DefaultNeovimProvider.Factory(

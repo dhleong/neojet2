@@ -23,6 +23,7 @@ dependencies {
 
     testCompile deps.test.junit
     testCompile deps.test.assertk
+    testCompile deps.test.mockito
 }
 
 compileKotlin {
