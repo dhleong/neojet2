@@ -80,6 +80,13 @@ class NeojetEnhancedEditorFacade private constructor(
         }
     }
 
+    // var so it can be replaced in integration tests
+    var dispatchTypedKey: (KeyEvent) -> Unit = { ev ->
+        corun {
+            nvim.input(ev)
+        }
+    }
+
     private val caretMovedListener = object : CaretListener {
         override fun caretPositionChanged(ev: CaretEvent) {
             if (editor.buffer == null) return // not installed/buffer not loaded yet
@@ -143,12 +150,6 @@ class NeojetEnhancedEditorFacade private constructor(
 
     override fun dispose() {
         editor.caretModel.removeCaretListener(caretMovedListener)
-    }
-
-    fun dispatchTypedKey(e: KeyEvent) {
-        corun {
-            nvim.input(e)
-        }
     }
 
     /*

@@ -9,11 +9,10 @@ import org.neojet.events.EventDaemon
 /**
  * This EventDaemon does not dispatch any events when [started][start],
  * but instead provides an additional [collectAndDispatch] method that
- * drains and dispatches events until none have arrived within [timeoutMillis]
+ * drains and dispatches events until none have arrived within a certain
+ * window of time
  */
-class TestableEventDaemon(
-    private val timeoutMillis: Long = 100
-) : EventDaemon {
+class TestableEventDaemon : EventDaemon {
 
     private lateinit var nvim: NeovimApi
 
@@ -25,11 +24,14 @@ class TestableEventDaemon(
         // nop
     }
 
-    fun collectAndDispatch() {
-        drain(requireEditor = true)
+    fun collectAndDispatch(timeoutMillis: Long = 250) {
+        drain(timeoutMillis, requireEditor = true)
     }
 
-    fun drain(requireEditor: Boolean = false) {
+    fun drain(
+        timeoutMillis: Long = 50,
+        requireEditor: Boolean = false
+    ) {
         runBlocking {
             launch {
                 while (true) {

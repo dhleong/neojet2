@@ -1,5 +1,7 @@
 package org.neojet
 
+import assertk.assert
+import assertk.assertions.isEqualTo
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.ide.highlighter.XmlFileType
 import com.intellij.openapi.application.ApplicationManager
@@ -17,6 +19,7 @@ import io.neovim.rpc.channels.EmbeddedChannel
 import kotlinx.coroutines.runBlocking
 import org.neojet.events.DefaultEventDaemon
 import org.neojet.events.EventDaemon
+import org.neojet.nvim.input
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
@@ -80,6 +83,11 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
     ): Editor {
         myFixture.configureByText(fileType, content)
         facade = NeojetEnhancedEditorFacade.install(myFixture.editor)
+        facade.dispatchTypedKey = { ev ->
+            runBlocking {
+                NJCore.instance.nvim.input(ev)
+            }
+        }
         return myFixture.editor
     }
 
@@ -131,6 +139,12 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
 
         runBlocking {
             facade.awaitReady()
+
+            // verify the buffer is set correctly
+            val expectedLines = before.split("\n")
+            val buf = NJCore.instance.nvim.getCurrentBuf()
+            val actualLines = buf.getLines(0, expectedLines.size.toLong(), false)
+            assert(actualLines).isEqualTo(expectedLines)
         }
 
         CommandProcessor.getInstance().executeCommand(myFixture.project, {
