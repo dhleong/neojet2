@@ -1,24 +1,10 @@
 package org.neojet
 
-import assertk.assert
-import assertk.assertions.isEqualTo
-import com.intellij.ide.highlighter.JavaFileType
-import com.intellij.ide.highlighter.XmlFileType
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileTypes.LanguageFileType
-import com.intellij.openapi.fileTypes.PlainTextFileType
-import com.intellij.testFramework.LightProjectDescriptor
-import com.intellij.testFramework.UsefulTestCase
-import com.intellij.testFramework.fixtures.CodeInsightTestFixture
-import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import io.neovim.rpc.channels.EmbeddedChannel
 import kotlinx.coroutines.runBlocking
 import org.neojet.events.DefaultEventDaemon
-import org.neojet.events.EventDaemon
 import org.neojet.nvim.input
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -26,76 +12,41 @@ import javax.swing.KeyStroke
 /**
  * @author dhleong
  */
-abstract class NeojetIntegrationTestCase : UsefulTestCase() {
-    companion object {
-        // we use a singleton event daemon because it's stateless anyway,
-        // and NJCore is initialized as a singleton across this suite too....
-        private val events = TestableEventDaemon()
-    }
+abstract class NeojetIntegrationTestCase : NeojetTestCase() {
 
-    private lateinit var myFixture: CodeInsightTestFixture
-
-    private val testDataPath: String
-        get() = PathManager.getHomePath() + "/community/plugins/neojet/testData"
-
-    protected lateinit var facade: NeojetEnhancedEditorFacade
-
-    override fun setUp() {
-        super.setUp()
-
-        NJCore.eventsFactory = EventDaemon.Factory { events }
-        NJCore.providerFactory = DefaultNeovimProvider.Factory(
+    override fun createNeovimProviderFactory(): NeovimProvider.Factory =
+        DefaultNeovimProvider.Factory(
             EmbeddedChannel.Factory(args = listOf("-u", "NONE"))
         )
-
-        val factory = IdeaTestFixtureFactory.getFixtureFactory()
-        val projectDescriptor = LightProjectDescriptor.EMPTY_PROJECT_DESCRIPTOR
-        val fixtureBuilder = factory.createLightFixtureBuilder(projectDescriptor)
-        val fixture = fixtureBuilder.fixture
-        myFixture = IdeaTestFixtureFactory.getFixtureFactory().createCodeInsightFixture(fixture,
-            LightTempDirTestFixtureImpl(true)
-        ).also {
-
-            it.setUp()
-            it.testDataPath = testDataPath
-        }
-    }
 
     override fun tearDown() {
         runBlocking {
             NJCore.instance.nvim.command("bdelete!")
         }
-        myFixture.tearDown()
-        facade.dispose()
+
+        super.tearDown()
 
         NJCore.providerFactory = NJCore.defaultProviderFactory
         NJCore.eventsFactory = DefaultEventDaemon.Factory()
 
-        super.tearDown()
-
         events.drain()
     }
 
-    @Suppress("MemberVisibilityCanPrivate")
-    protected fun configureByText(
+    override fun configureByText(
         content: String,
-        fileType: LanguageFileType = PlainTextFileType.INSTANCE
-    ): Editor {
-        myFixture.configureByText(fileType, content)
-        facade = NeojetEnhancedEditorFacade.install(myFixture.editor)
+        fileType: LanguageFileType
+    ): Editor = super.configureByText(content, fileType).also {
         facade.dispatchTypedKey = { ev ->
             runBlocking {
                 NJCore.instance.nvim.input(ev)
             }
         }
-        return myFixture.editor
+
+        // wait for the facade to be ready
+        runBlocking {
+            facade.awaitReady()
+        }
     }
-
-    protected fun configureByJavaText(content: String) =
-        configureByText(content, JavaFileType.INSTANCE)
-
-    protected fun configureByXmlText(content: String) =
-        configureByText(content, XmlFileType.INSTANCE)
 
     @Suppress("MemberVisibilityCanPrivate")
     protected fun typeText(keys: List<KeyStroke>): Editor {
@@ -111,19 +62,6 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
         return editor
     }
 
-    fun assertOffset(vararg expectedOffsets: Int) {
-        val carets = myFixture.editor.caretModel.allCarets
-        assertEquals("Wrong amount of carets", expectedOffsets.size, carets.size)
-        for (i in expectedOffsets.indices) {
-            assertEquals(expectedOffsets[i], carets[i].offset)
-        }
-    }
-
-    fun assertSelection(expected: String?) {
-        val selected = myFixture.editor.selectionModel.selectedText
-        assertEquals(expected, selected)
-    }
-
     fun doTest(before: String, typeKeys: String, after: String) {
         doTest(before, keys(typeKeys), after)
     }
@@ -134,34 +72,15 @@ abstract class NeojetIntegrationTestCase : UsefulTestCase() {
         }
     }
 
-    fun doTest(before: String, after: String, block: () -> Unit) {
-        configureByText(before)
-
-        runBlocking {
-            facade.awaitReady()
-
-            // verify the buffer is set correctly
-            val expectedLines = before.split("\n")
-            val buf = NJCore.instance.nvim.getCurrentBuf()
-            val actualLines = buf.getLines(0, expectedLines.size.toLong(), false)
-            assert(actualLines).isEqualTo(expectedLines)
-        }
-
-        CommandProcessor.getInstance().executeCommand(myFixture.project, {
-            ApplicationManager.getApplication().runWriteAction {
-                // always ensure we start at the top of the file
-                // TODO if we properly ensure the caret is sync'd *to* nvim on buffer open
-                // this might be unnecessary
-                typeText(keys("gg"))
-
-                block()
-            }
-        }, "testCommand", "org.neojet")
-        myFixture.checkResult(after)
-    }
-
     fun keys(asTyped: String) = asTyped.map {
         KeyStroke.getKeyStroke(it)
+    }
+
+    override fun onPreTest() {
+        // always ensure we start at the top of the file
+        // TODO if we properly ensure the caret is sync'd *to* nvim on buffer open
+        // this might be unnecessary
+        typeText(keys("gg"))
     }
 }
 

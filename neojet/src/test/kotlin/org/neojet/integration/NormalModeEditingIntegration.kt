@@ -58,4 +58,5 @@ class NormalModeEditingIntegration : NeojetIntegrationTestCase() {
             }
         """.trimIndent()
     )
+
 }
