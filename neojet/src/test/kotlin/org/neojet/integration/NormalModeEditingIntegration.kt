@@ -1,4 +1,6 @@
-package org.neojet
+package org.neojet.integration
+
+import org.neojet.NeojetIntegrationTestCase
 
 /**
  * @author dhleong
