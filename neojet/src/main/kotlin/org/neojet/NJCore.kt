@@ -10,6 +10,8 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.util.Disposer
 import io.neovim.NeovimApi
 import io.neovim.rpc.channels.EmbeddedChannel
+import io.neovim.rpc.channels.FallbackChannelFactory
+import io.neovim.rpc.channels.SocketChannel
 import org.neojet.events.DefaultEventDaemon
 import org.neojet.events.EventDaemon
 import org.neojet.util.enhanced
@@ -71,8 +73,10 @@ class NJCore : BaseComponent, Disposable {
                 .getComponent(NJCore::class.java)
 
         val defaultProviderFactory = DefaultNeovimProvider.Factory(
-//            SocketChannel.Factory("localhost", 7777),
-            EmbeddedChannel.Factory()
+            FallbackChannelFactory(
+                SocketChannel.Factory("localhost", 7777),
+                EmbeddedChannel.Factory()
+            )
         )
 
         var providerFactory: NeovimProvider.Factory = defaultProviderFactory
