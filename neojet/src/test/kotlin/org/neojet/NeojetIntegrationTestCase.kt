@@ -57,7 +57,7 @@ abstract class NeojetIntegrationTestCase : AbstractNeojetTestCase() {
             ))
         }
 
-        events.collectAndDispatch()
+        events.collectAndDispatch(timeoutMillis = 750)
 
         return editor
     }

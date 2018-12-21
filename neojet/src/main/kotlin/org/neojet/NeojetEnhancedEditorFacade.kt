@@ -158,26 +158,44 @@ class NeojetEnhancedEditorFacade private constructor(
 
     @HandlesEvent
     fun bufferLinesChanged(event: BufLinesEvent) {
-        println(event)
+//        val linesRaw = event.linedata.map { "'$it'" }.toString()
+//        println(event)
+//        println(" -> lines: $linesRaw")
+
+        val replacement = StringBuilder().apply {
+            for (line in event.linedata) {
+                append(line)
+                append("\n")
+            }
+        }
 
         // this seems very wacky:
         val startOffset = editor.getLineStartOffset(event.firstline.toInt())
-        val endOffset = editor.getLineStartOffset(event.lastline.toInt())
-        if (event.firstline == event.lastline) {
-            println("insert lines at $endOffset (${event.lastline})")
-            editor.document.insertString(endOffset, event.linedata.joinToString(
-                separator = "\n",
-                postfix = "\n"
-            ))
-        } else {
-            val replacement = event.linedata.joinToString("\n")
-            println("replace from $startOffset (${event.firstline}) - $endOffset (${event.lastline}) with `$replacement`")
-            editor.document.replaceString(
-                startOffset,
-                if (endOffset == startOffset) endOffset + 1
-                else endOffset,
-                replacement
-            )
+        val endOffset = maxOf(
+            startOffset,
+            editor.getLineStartOffset(event.lastline.toInt()) - 1
+        )
+        val isInsert = event.firstline == event.lastline
+
+        when {
+            isInsert && event.firstline.toInt() == editor.lineCount -> {
+                editor.document.insertString(editor.document.textLength, replacement)
+            }
+
+            isInsert -> {
+                editor.document.insertString(endOffset, replacement)
+            }
+
+            else -> {
+                editor.document.replaceString(
+                    // if we're deleting at the end of the document, start one earlier
+                    // to clear the newline
+                    if (event.lastline == editor.lineCount.toLong()) startOffset - 1
+                    else startOffset,
+                    endOffset + 1,
+                    replacement
+                )
+            }
         }
     }
 
@@ -194,13 +212,13 @@ class NeojetEnhancedEditorFacade private constructor(
         withoutCaretNotifications {
             val newLogicalPosition = getLogicalPosition()
 
-            val lineEndOffset = editor.getLineEndOffset(newLogicalPosition.line)
-            val lineLength = lineEndOffset - editor.getLineStartOffset(newLogicalPosition.line)
-            val endDiff = cursorCol - lineLength
-            if (endDiff > 0) {
-                // this implies inserting spaces
-                editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
-            }
+//            val lineEndOffset = editor.getLineEndOffset(newLogicalPosition.line)
+//            val lineLength = lineEndOffset - editor.getLineStartOffset(newLogicalPosition.line)
+//            val endDiff = cursorCol - lineLength
+//            if (endDiff > 0) {
+//                // this implies inserting spaces
+//                editor.document.insertString(lineEndOffset, " ".repeat(endDiff))
+//            }
 
             editor.caretModel.primaryCaret.moveToLogicalPosition(newLogicalPosition)
         }

@@ -51,6 +51,9 @@ val Editor.disposable: Disposable
         throw IllegalArgumentException("$this doesn't have a Disposable")
     }
 
+val Editor.lineCount: Int
+    get() = document.lineCount
+
 val Editor.lastLine: Int
     get() = document.lineCount -1
 

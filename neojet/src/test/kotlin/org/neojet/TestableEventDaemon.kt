@@ -29,7 +29,7 @@ class TestableEventDaemon : EventDaemon {
     }
 
     fun drain(
-        timeoutMillis: Long = 50,
+        timeoutMillis: Long = 250,
         requireEditor: Boolean = false
     ) {
         runBlocking {
