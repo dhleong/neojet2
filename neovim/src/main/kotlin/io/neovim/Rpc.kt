@@ -67,6 +67,7 @@ class Rpc(
                 break
             }
 
+            println("<< read $packet")
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }

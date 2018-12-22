@@ -167,7 +167,7 @@ class NeojetEnhancedEditorFacade private constructor(
                 append(line)
                 append("\n")
             }
-        }
+        }.toString()
 
         // this seems very wacky:
         val startOffset = editor.getLineStartOffset(event.firstline.toInt())
@@ -187,13 +187,21 @@ class NeojetEnhancedEditorFacade private constructor(
             }
 
             else -> {
-                editor.document.replaceString(
+                val atEnd = event.lastline >= editor.lineCount.toLong()
+                val atStart = event.firstline == 0L
+                val replaceStart =
                     // if we're deleting at the end of the document, start one earlier
                     // to clear the newline
-                    if (event.lastline == editor.lineCount.toLong()) startOffset - 1
-                    else startOffset,
+                    if (atEnd && !atStart) startOffset - 1
+                    else startOffset
+                editor.document.replaceString(
+                    maxOf(0, replaceStart),
                     endOffset + 1,
-                    replacement
+
+                    when {
+                        atEnd -> replacement.substringBeforeLast("\n")
+                        else -> replacement
+                    }
                 )
             }
         }

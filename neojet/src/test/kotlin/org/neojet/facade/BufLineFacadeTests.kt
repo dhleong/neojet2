@@ -101,7 +101,21 @@ class BufLineFacadeTests : NeojetTestCase() {
         Insert lines
      */
 
-    fun `test Insert first line`() = doTest(
+    fun `test Insert initial line`() = doTest(
+        before = "",
+
+        after = """
+            package io.firefly
+        """.trimIndent()
+    ) {
+        dispatchBufferLinesChanged(
+            firstLine = 0,
+            lastLine = 1,
+            lines = listOf("package io.firefly")
+        )
+    }
+
+    fun `test Insert before first line`() = doTest(
         before = """
             class Ship {
                 void takeoff() {
