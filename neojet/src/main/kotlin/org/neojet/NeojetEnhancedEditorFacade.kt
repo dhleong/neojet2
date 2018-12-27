@@ -5,6 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.DumbService
@@ -136,16 +138,15 @@ class NeojetEnhancedEditorFacade private constructor(
             }
         })
 
-//        editor.document.addDocumentListener(object : DocumentListener {
-//            override fun documentChanged(e: DocumentEvent) {
-//                if (editingDocumentFromVim) return
-//
-//                // TODO: IntelliJ edited the document unexpectedly
-//                System.out.println(
-//                    "Document changed @${e.offset}: `${e.oldFragment}` -> `${e.newFragment}`")
-//                System.out.println("${e.oldLength} -> ${e.newLength}")
-//            }
-//        }, this)
+        editor.document.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(e: DocumentEvent) {
+                if (editingDocumentFromVim) return
+
+                // TODO: IntelliJ edited the document unexpectedly
+                println("Document changed @${e.offset}: `${e.oldFragment}` -> `${e.newFragment}`")
+                println("${e.oldLength} -> ${e.newLength}")
+            }
+        }, this)
     }
 
     override fun dispose() {
@@ -194,9 +195,13 @@ class NeojetEnhancedEditorFacade private constructor(
                     // to clear the newline
                     if (atEnd && !atStart) startOffset - 1
                     else startOffset
+                val replaceEnd =
+                    if (atEnd) editor.document.textLength
+                    else endOffset + 1
+
                 editor.document.replaceString(
                     maxOf(0, replaceStart),
-                    endOffset + 1,
+                    replaceEnd,
 
                     when {
                         atEnd -> replacement.substringBeforeLast("\n")

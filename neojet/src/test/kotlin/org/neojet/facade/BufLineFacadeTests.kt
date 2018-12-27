@@ -97,6 +97,23 @@ class BufLineFacadeTests : NeojetTestCase() {
         )
     }
 
+    fun `test Delete remaining lines`() = doTest(
+        before = """
+            class Ship {
+                void takeoff() {
+                }
+            }
+        """.trimIndent(),
+
+        after = ""
+    ) {
+        dispatchBufferLinesChanged(
+            firstLine = 0,
+            lastLine = 4,
+            lines = listOf()
+        )
+    }
+
     /*
         Insert lines
      */
