@@ -11,6 +11,22 @@ import javax.swing.KeyStroke
  * @author dhleong
  */
 class KeysTest {
+    @Test fun `Simple keys`() {
+        assert("C").hasVimCode("c")
+        assert("1").hasVimCode("1")
+    }
+
+    @Test fun `Keys with Modifiers`() {
+        assert("control C").hasVimCode("<c-c>")
+        assert("alt C").hasVimCode("<a-c>")
+        assert("meta C").hasVimCode("<m-c>")
+        assert("control shift C").hasVimCode("<c-s-c>")
+        assert("alt shift C").hasVimCode("<a-s-c>")
+        assert("control alt C").hasVimCode("<c-a-c>")
+        assert("control alt shift C").hasVimCode("<c-a-s-c>")
+        assert("meta control alt shift C").hasVimCode("<m-c-a-s-c>")
+    }
+
     @Test fun `Special Keys`() {
         assert('<').hasVimCode("<lt>")
         assert('>').hasVimCode("<gt>")

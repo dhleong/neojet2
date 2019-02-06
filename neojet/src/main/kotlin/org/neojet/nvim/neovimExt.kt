@@ -6,6 +6,8 @@ import java.awt.event.KeyEvent
 
 suspend fun NeovimApi.input(key: KeyEvent) {
     val code = key.toVimCode()
-    println("input($code)")
+    if (code.isEmpty()) return
+
+    println("input($key -> $code)")
     input(code)
 }

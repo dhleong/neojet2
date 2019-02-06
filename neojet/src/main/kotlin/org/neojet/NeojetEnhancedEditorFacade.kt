@@ -32,6 +32,7 @@ import java.awt.event.FocusEvent
 import java.awt.event.KeyEvent
 import java.util.logging.Logger
 import javax.swing.JComponent
+import javax.swing.KeyStroke
 
 /**
  * @author dhleong
@@ -70,15 +71,30 @@ class NeojetEnhancedEditorFacade private constructor(
 
     val keyEventDispatcher: KeyEventDispatcher = KeyEventDispatcher {
         val isForOurComponent = it?.component?.belongsTo(editor.component) ?: false
-        if (isForOurComponent && it.id == KeyEvent.KEY_TYPED) {
-            dispatchTypedKey(it)
-            true // consume
-        } else if (isForOurComponent) {
-            // TODO handle held keys, for example
-            false
-        } else {
+        if (!isForOurComponent) {
             // not for our editor; ignore
-            false
+            return@KeyEventDispatcher false
+        }
+
+        when (it.id) {
+            KeyEvent.KEY_TYPED -> {
+                if (it.modifiers == 0) {
+                    // ONLY handle 0-modifier keys typed *here*
+                    dispatchTypedKey(it)
+                }
+                true // consume
+            }
+
+            KeyEvent.KEY_PRESSED -> {
+                // if there are no modifiers it should be handled by the
+                // KEY_TYPED branch above (?)
+                if (it.modifiers == 0) return@KeyEventDispatcher false
+
+                dispatchTypedKey(it)
+                true
+            }
+
+            else -> false
         }
     }
 
