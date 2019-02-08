@@ -23,14 +23,17 @@ import kotlinx.coroutines.channels.Channel
 import org.neojet.events.EventDispatchTarget
 import org.neojet.events.EventDispatcher
 import org.neojet.events.HandlesEvent
+import org.neojet.ext.VimShortcutKeyAction
 import org.neojet.nvim.input
 import org.neojet.util.*
 import java.awt.Component
 import java.awt.KeyEventDispatcher
+import java.awt.event.ActionEvent
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.KeyEvent
 import java.util.logging.Logger
+import javax.swing.AbstractAction
 import javax.swing.JComponent
 import javax.swing.KeyStroke
 
@@ -58,6 +61,13 @@ class NeojetEnhancedEditorFacade private constructor(
 
             val facade = NeojetEnhancedEditorFacade(editor)
             editor.enhanced = facade
+
+            // suppress default handling of special keys so we
+            // can let Vim handle it (at least... in normal mode)
+            VimShortcutKeyAction.registerCustomShortcutSet(
+                editor.contentComponent,
+                facade
+            )
 
             if (editor is EditorImpl) {
                 Disposer.register(editor.disposable, facade)
@@ -88,13 +98,13 @@ class NeojetEnhancedEditorFacade private constructor(
             KeyEvent.KEY_PRESSED -> {
                 // if there are no modifiers it should be handled by the
                 // KEY_TYPED branch above (?)
-                if (it.modifiers == 0) return@KeyEventDispatcher false
+                if (it.modifiers == 0) return@KeyEventDispatcher true
 
                 dispatchTypedKey(it)
                 true
             }
 
-            else -> false
+            else -> true
         }
     }
 
@@ -143,6 +153,7 @@ class NeojetEnhancedEditorFacade private constructor(
 
     init {
         editor.caretModel.addCaretListener(caretMovedListener)
+
         editor.contentComponent.addFocusListener(object : FocusAdapter() {
             override fun focusGained(e: FocusEvent?) {
                 EditorManager.setActive(this@NeojetEnhancedEditorFacade)

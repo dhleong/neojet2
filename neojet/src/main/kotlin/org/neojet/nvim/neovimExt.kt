@@ -8,6 +8,6 @@ suspend fun NeovimApi.input(key: KeyEvent) {
     val code = key.toVimCode()
     if (code.isEmpty()) return
 
-    println("input($key -> $code)")
+    println("input($code <- $key)")
     input(code)
 }

@@ -6,6 +6,7 @@ import io.neovim.NeovimApi
 import io.neovim.events.BufLinesEvent
 import io.neovim.events.CursorGoto
 import org.neojet.util.enhanced
+import java.awt.event.KeyEvent
 
 /**
  * @author dhleong
@@ -13,9 +14,11 @@ import org.neojet.util.enhanced
 abstract class NeojetTestCase : AbstractNeojetTestCase() {
 
     protected lateinit var nvim: NeovimApi
+    protected val dispatchedKeys = mutableListOf<KeyEvent>()
 
     override fun setUp() {
         nvim = mock {  }
+        dispatchedKeys.clear()
 
         super.setUp()
     }
@@ -28,6 +31,7 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
 
                 override fun attach(editor: Editor, facade: NeojetEnhancedEditorFacade): NeovimApi {
                     editor.enhanced = facade
+                    facade.dispatchTypedKey = { ev -> dispatchedKeys.add(ev) }
                     facade.setReady()
                     return api
                 }

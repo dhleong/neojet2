@@ -42,6 +42,8 @@
 
     <actions>
         <!-- Add your actions here -->
+        <action id="org.neojet.ext.VimShortcutKeyAction" class="org.neojet.ext.VimShortcutKeyAction"
+                text="VimShortcutKeyAction" description="Handles special keys"/>
     </actions>
 
 </idea-plugin>

@@ -1,6 +1,7 @@
 package org.neojet.util
 
 import java.awt.event.KeyEvent
+import javax.swing.JComponent
 import javax.swing.KeyStroke
 
 /**
@@ -52,6 +53,12 @@ fun KeyStroke.toVimCode(): String {
 }
 
 fun KeyEvent.toVimCode() = KeyStroke.getKeyStrokeForEvent(this).toVimCode()
+
+fun KeyStroke.toEventFor(component: JComponent) = KeyEvent(
+    component,
+    0, 0,
+    modifiers, keyCode, keyChar
+)
 
 private val vkKeyCodeToNameMap by lazy {
     // this is apparently how the AWTKeyStroke handles its toString
