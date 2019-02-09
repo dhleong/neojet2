@@ -11,8 +11,6 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.util.EditorUtil.getEditorFont
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.Ref
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.types.Buffer
@@ -143,45 +141,20 @@ fun getEditorFont(attrs: Int = Font.PLAIN): Font {
     return Font(fontFace, attrs, fontSize)
 }
 
-/**
- * @return a lambda that evaluates the given action as
- *  a WriteAction
- */
-fun <T> asWriteAction(action: () -> T): () -> T {
-    return {
-        ApplicationManager.getApplication().runWriteAction(Computable {
-            action()
-        })
-    }
-}
-
 fun runUndoTransparently(action: () -> Unit) {
     CommandProcessor.getInstance().runUndoTransparentAction(action)
 }
 
-inline fun runWriteActionUndoTransparently(crossinline action: () -> Unit) {
-    inWriteAction {
-        runUndoTransparently {
-            action()
-        }
-    }
-}
-
 /**
- * Execute the given block in a write action on the event dispatch
- *  thread, waiting for the result
+ * Asynchronously execute the given block in a write action
+ * on the event dispatch thread
  */
-fun <T> inWriteAction(action: () -> T): T =
-    inWriteAction(ModalityState.NON_MODAL, action)
-
-fun <T> inWriteAction(modality: ModalityState, action: () -> T): T {
-    val wrapped = asWriteAction(action)
-    val resultRef = Ref.create<T>()
+fun inWriteAction(
+    modalityState: ModalityState = ModalityState.NON_MODAL,
+    action: () -> Unit
+) {
     val app = ApplicationManager.getApplication()
-
-    app.invokeAndWait({
-        resultRef.set(wrapped())
-    }, modality)
-
-    return resultRef.get()
+    app.invokeLater({
+        app.runWriteAction(action)
+    }, modalityState)
 }

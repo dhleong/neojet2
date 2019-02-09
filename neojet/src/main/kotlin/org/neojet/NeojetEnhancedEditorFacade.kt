@@ -28,14 +28,11 @@ import org.neojet.nvim.input
 import org.neojet.util.*
 import java.awt.Component
 import java.awt.KeyEventDispatcher
-import java.awt.event.ActionEvent
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.KeyEvent
 import java.util.logging.Logger
-import javax.swing.AbstractAction
 import javax.swing.JComponent
-import javax.swing.KeyStroke
 
 /**
  * @author dhleong
@@ -391,13 +388,13 @@ class NeojetEnhancedEditorFacade private constructor(
     }
 
     private inline fun editDocumentFromVim(crossinline edits: () -> Unit) {
-        editingDocumentFromVim = true
         inWriteAction {
+            editingDocumentFromVim = true
             runUndoTransparently {
                 edits()
             }
+            editingDocumentFromVim = false
         }
-        editingDocumentFromVim = false
     }
 
     private inline fun withoutCaretNotifications(block: () -> Unit) {
