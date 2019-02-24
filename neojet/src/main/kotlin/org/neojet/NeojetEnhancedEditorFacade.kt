@@ -166,9 +166,26 @@ class NeojetEnhancedEditorFacade private constructor(
             override fun documentChanged(e: DocumentEvent) {
                 if (editingDocumentFromVim) return
 
-                // TODO: IntelliJ edited the document unexpectedly
+                // IntelliJ did some extra edits to the document
                 println("Document changed @${e.offset}: `${e.oldFragment}` -> `${e.newFragment}`")
-                println("${e.oldLength} -> ${e.newLength}")
+                val startLine = e.document.getLineNumber(e.offset)
+                val inputEndLine = e.document.getLineNumber(e.offset + e.oldLength)
+                val outputEndLine = e.document.getLineNumber(e.offset + e.newLength)
+                println("${e.oldLength} -> ${e.newLength} @[$startLine, $inputEndLine] -> [$startLine, $outputEndLine]")
+
+                val lines = e.document.getLines(startLine, outputEndLine)
+                val buffer = editor.buffer ?: throw IllegalStateException("No buffer set")
+                corun {
+                    buffer.setLines(
+                        start = startLine.toLong(),
+                        end = when {
+                            e.oldLength == 0 -> inputEndLine.toLong()
+                            else -> inputEndLine.toLong() + 1
+                        },
+                        strictIndexing = false,
+                        replacement = lines
+                    )
+                }
             }
         }, this)
     }

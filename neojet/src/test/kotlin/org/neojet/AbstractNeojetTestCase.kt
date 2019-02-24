@@ -13,7 +13,9 @@ import com.intellij.testFramework.UsefulTestCase
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
+import com.nhaarman.mockitokotlin2.mock
 import org.neojet.events.EventDaemon
+import org.neojet.util.buffer
 
 /**
  * @author dhleong
@@ -68,6 +70,7 @@ abstract class AbstractNeojetTestCase : UsefulTestCase() {
     ): Editor {
         myFixture.configureByText(fileType, content)
         facade = NeojetEnhancedEditorFacade.install(myFixture.editor)
+        facade.editor.buffer = mock {  }
         facadeCreated = true
         return myFixture.editor
     }
@@ -91,8 +94,14 @@ abstract class AbstractNeojetTestCase : UsefulTestCase() {
         assertEquals(expected, selected)
     }
 
-    fun doTest(before: String, after: String, block: () -> Unit) {
-        configureByText(before)
+    fun doTest(
+        fileType: LanguageFileType = PlainTextFileType.INSTANCE,
+        before: String,
+        after: String,
+        extraAsserts: () -> Unit = { /* nop */ },
+        block: () -> Unit
+    ) {
+        configureByText(before, fileType)
 
         CommandProcessor.getInstance().executeCommand(myFixture.project, {
             ApplicationManager.getApplication().runWriteAction {
@@ -102,6 +111,7 @@ abstract class AbstractNeojetTestCase : UsefulTestCase() {
             }
         }, "testCommand", "org.neojet")
         myFixture.checkResult(after)
+        extraAsserts()
     }
 
     protected open fun onPreTest() { }

@@ -53,7 +53,7 @@ class DefaultNeovimProvider(
         corun {
             logger.info(" >> attach($editor) on ${Thread.currentThread()}")
             nvim.command("setlocal nolist")
-            uiAttach(nvim, editor, editor.document.vFile, facade.cells)
+            uiAttach(nvim, editor, editor.document.virtualFile, facade.cells)
             facade.setReady()
         }
 

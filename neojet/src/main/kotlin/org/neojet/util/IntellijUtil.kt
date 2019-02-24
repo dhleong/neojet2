@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.util.EditorUtil.getEditorFont
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import io.neovim.types.Buffer
@@ -25,10 +26,20 @@ import javax.swing.JComponent
 /**
  * @author dhleong
  */
-
-val Document.vFile: VirtualFile
+private val Document.virtualFileMaybe: VirtualFile?
     get() = FileDocumentManager.getInstance().getFile(this)
-        ?: throw IllegalArgumentException("$this didn't have a vFile")
+
+val Document.virtualFile: VirtualFile
+    get() = virtualFileMaybe
+        ?: throw IllegalArgumentException("$this didn't have a virtualFile")
+
+fun Document.getLines(firstLine: Int, lastLine: Int): List<String> {
+    val text = getText(TextRange(
+        getLineStartOffset(firstLine),
+        getLineEndOffset(lastLine)
+    ))
+    return text.split("\n")
+}
 
 var Editor.buffer: Buffer?
     get() = getUserData(neojetBufferKey)
@@ -54,6 +65,9 @@ val Editor.lineCount: Int
 
 val Editor.lastLine: Int
     get() = document.lineCount -1
+
+val Editor.virtualFile: VirtualFile?
+    get() = document.virtualFileMaybe
 
 fun Editor.getLineEndOffset(line: Int, clamp: Boolean = true): Int {
     val actual = logicalPositionToOffset(LogicalPosition(line + 1, 0)) - 1

@@ -49,7 +49,7 @@ abstract class NeojetIntegrationTestCase : AbstractNeojetTestCase() {
     }
 
     @Suppress("MemberVisibilityCanPrivate")
-    protected fun typeText(keys: List<KeyStroke>): Editor {
+    protected fun typeTextInFacade(keys: List<KeyStroke>): Editor {
         val editor = myFixture.editor
         for (key in keys) {
             facade.dispatchTypedKey(KeyEvent(editor.component,
@@ -67,8 +67,8 @@ abstract class NeojetIntegrationTestCase : AbstractNeojetTestCase() {
     }
 
     fun doTest(before: String, type: List<KeyStroke>, after: String) {
-        doTest(before, after) {
-            typeText(type)
+        doTest(before = before, after = after) {
+            typeTextInFacade(type)
         }
     }
 
@@ -80,7 +80,7 @@ abstract class NeojetIntegrationTestCase : AbstractNeojetTestCase() {
         // always ensure we start at the top of the file
         // TODO if we properly ensure the caret is sync'd *to* nvim on buffer open
         // this might be unnecessary
-        typeText(keys("gg"))
+        typeTextInFacade(keys("gg"))
     }
 }
 

@@ -1,10 +1,16 @@
 package org.neojet
 
 import com.intellij.openapi.editor.Editor
-import com.nhaarman.mockito_kotlin.mock
+import com.intellij.openapi.editor.actionSystem.EditorActionManager
+import com.intellij.openapi.fileTypes.LanguageFileType
+import com.intellij.openapi.fileTypes.PlainTextFileType
+import com.nhaarman.mockitokotlin2.doReturn
+import com.nhaarman.mockitokotlin2.mock
 import io.neovim.NeovimApi
 import io.neovim.events.BufLinesEvent
 import io.neovim.events.CursorGoto
+import io.neovim.types.Window
+import org.neojet.ext.createDataContext
 import org.neojet.util.enhanced
 import java.awt.event.KeyEvent
 
@@ -17,7 +23,10 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
     protected val dispatchedKeys = mutableListOf<KeyEvent>()
 
     override fun setUp() {
-        nvim = mock {  }
+        val window = mock<Window> {  }
+        nvim = mock {
+            onBlocking { getCurrentWin() } doReturn window
+        }
         dispatchedKeys.clear()
 
         super.setUp()
@@ -67,5 +76,26 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
         row: Int,
         col: Int
     ) = facade.cursorMoved(CursorGoto(row.toLong(), col.toLong()))
+
+    protected fun doTest(
+        fileType: LanguageFileType = PlainTextFileType.INSTANCE,
+        before: String,
+        typeText: String,
+        after: String,
+        block: () -> Unit
+    ) = doTest(
+        fileType,
+        before = before,
+        after = after,
+        block = {
+            val handler = EditorActionManager.getInstance().typedAction.rawHandler
+            val editor = facade.editor
+            val context = editor.createDataContext()
+            for (charTyped in typeText) {
+                handler.execute(editor, charTyped, context)
+            }
+        },
+        extraAsserts = block
+    )
 
 }
