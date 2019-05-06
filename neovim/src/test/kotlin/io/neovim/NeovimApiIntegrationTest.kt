@@ -56,7 +56,8 @@ class NeovimApiIntegrationTest {
         val buffer = api.getCurrentBuf()
 
         assert(buffer.isValid()).isTrue()
-        assert(buffer.lineCount()).isEqualTo(1L)
+        assert(buffer.getName()).isEqualTo("")
+        assert(buffer.getNumber()).isEqualTo(1L)
     }
 
     @Test fun `Arguments to methods on custom types work`() = runBlockingUnit {
@@ -80,9 +81,13 @@ class NeovimApiIntegrationTest {
     }
 
     @Test(timeout = 1000) fun `Attach to buffer`() = runBlockingUnit {
-//        val buf = api.getCurrentBuf()
-//        val attached = buf.attach(false, emptyMap())
-//        assert(attached).isTrue()
+        val buf = api.getCurrentBuf()
+
+        // set some content to ensure the buffer is "loaded"
+        buf.setLines(0, 0, false, listOf("Test"))
+
+        val attached = buf.attach(false, emptyMap())
+        assert(attached).isTrue()
 
 //        rpc.send(RequestPacket(
 //            requestId = 0,
@@ -91,8 +96,8 @@ class NeovimApiIntegrationTest {
 //        ))
 //        delay(1000)
 
-        val result = rpc.request("nvim_buf_attach", listOf(0, false, emptyMap<Any, Any>()), Boolean::class.java)
-        assert(result.result as Boolean).isTrue()
+//        val result = rpc.request("nvim_buf_attach", listOf(0, false, emptyMap<Any, Any>()), Boolean::class.java)
+//        assert(result.result as Boolean).isTrue()
     }
 }
 
