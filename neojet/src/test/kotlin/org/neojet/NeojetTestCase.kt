@@ -63,7 +63,7 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
         firstLine: Long,
         lastLine: Long,
         lines: List<String>
-    ) = facade.bufferLinesChanged(BufLinesEvent(
+    ) = facade.dispatch(BufLinesEvent(
         mock {},
         changedtick = 1,
         firstline = firstLine,
@@ -75,7 +75,7 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
     protected fun dispatchCursorGoto(
         row: Int,
         col: Int
-    ) = facade.cursorMoved(CursorGoto(row.toLong(), col.toLong()))
+    ) = facade.dispatch(CursorGoto(row.toLong(), col.toLong()))
 
     protected fun doTest(
         fileType: LanguageFileType = PlainTextFileType.INSTANCE,

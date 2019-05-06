@@ -168,6 +168,13 @@ fun inWriteAction(
     action: () -> Unit
 ) {
     val app = ApplicationManager.getApplication()
+    if (app.isUnitTestMode) {
+        app.invokeAndWait {
+            app.runWriteAction(action)
+        }
+        return
+    }
+
     app.invokeLater({
         app.runWriteAction(action)
     }, modalityState)
