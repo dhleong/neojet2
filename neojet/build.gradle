@@ -10,7 +10,7 @@ version neojet.version
 sourceCompatibility = 1.8
 
 intellij {
-    version 'IC-2018.3'
+    version 'IC-2018.3.6'
     pluginName 'NeoJet'
 }
 

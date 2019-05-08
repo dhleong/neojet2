@@ -19,16 +19,18 @@ enum class On {
 /**
  * @author dhleong
  */
-inline fun corun(
+fun corun(
     on: On = On.BG,
-    crossinline block: suspend () -> Unit
+    block: suspend () -> Unit
 ): Job {
     val context: CoroutineContext = when (on) {
         On.BG -> Dispatchers.IO
         On.UI -> Dispatchers.Main
     }
 
-    return GlobalScope.launch(context) {
+    val scope = GlobalScope
+
+    return scope.launch(context) {
         safely(block)
     }
 }
