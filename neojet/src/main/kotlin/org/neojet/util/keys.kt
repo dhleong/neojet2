@@ -24,6 +24,10 @@ private val specialKeyCodes = mapOf(
 )
 
 fun KeyStroke.toVimCode(): String {
+    if (keyCode == KeyEvent.VK_UNDEFINED) {
+        return keyChar.toString()
+    }
+
     val builder = StringBuilder(8)
     if ((modifiers and KeyEvent.META_MASK) != 0) {
         builder.append("m-")
@@ -52,7 +56,13 @@ fun KeyStroke.toVimCode(): String {
     }
 }
 
-fun KeyEvent.toVimCode() = KeyStroke.getKeyStrokeForEvent(this).toVimCode()
+fun KeyEvent.toVimCode() = toKeyStroke().toVimCode()
+
+fun KeyEvent.toKeyStroke() = when {
+    keyChar != KeyEvent.CHAR_UNDEFINED -> KeyStroke.getKeyStroke(keyChar, modifiers)
+    keyCode != KeyEvent.VK_UNDEFINED -> KeyStroke.getKeyStroke(keyCode, modifiers, id == KeyEvent.KEY_RELEASED)
+    else -> KeyStroke.getKeyStrokeForEvent(this)
+}
 
 fun KeyStroke.toEventFor(component: JComponent) = KeyEvent(
     component,
@@ -74,5 +84,5 @@ private val vkKeyCodeToNameMap by lazy {
 }
 
 private fun Int.codeToVkKeyName(): String =
-        vkKeyCodeToNameMap[this] ?: ""
+    vkKeyCodeToNameMap[this] ?: ""
 

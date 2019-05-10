@@ -4,7 +4,10 @@ import assertk.Assert
 import assertk.assert
 import assertk.assertions.support.expected
 import assertk.assertions.support.show
+import com.nhaarman.mockitokotlin2.mock
 import org.junit.Test
+import java.awt.Component
+import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
 /**
@@ -25,6 +28,14 @@ class KeysTest {
         assert("control alt C").hasVimCode("<c-a-c>")
         assert("control alt shift C").hasVimCode("<c-a-s-c>")
         assert("meta control alt shift C").hasVimCode("<m-c-a-s-c>")
+    }
+
+    @Test fun `Symbol keys`() {
+        val bracketEvent = keyPressedEvent('{', modifiers = KeyEvent.SHIFT_DOWN_MASK)
+        assert(bracketEvent).hasVimCode("{")
+
+        val parenEvent = keyPressedEvent('(', modifiers = KeyEvent.SHIFT_DOWN_MASK)
+        assert(parenEvent).hasVimCode("(")
     }
 
     @Test fun `Special Keys`() {
@@ -50,6 +61,7 @@ private fun Assert<Any>.hasVimCode(expectedVimCode: String) {
         is Char -> stroke(it)
         is String -> stroke(it)
         is KeyStroke -> it
+        is KeyEvent -> it.toKeyStroke()
         else -> throw IllegalArgumentException()
     }
     val actualCode = stroke.toVimCode()
@@ -59,3 +71,9 @@ private fun Assert<Any>.hasVimCode(expectedVimCode: String) {
 
 private fun stroke(char: Char) = KeyStroke.getKeyStroke(char)
 private fun stroke(string: String) = KeyStroke.getKeyStroke(string)
+
+private fun keyPressedEvent(keyChar: Char, modifiers: Int): Any {
+    val source = mock<Component> {  }
+    return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, KeyEvent.VK_UNDEFINED, keyChar)
+}
+
