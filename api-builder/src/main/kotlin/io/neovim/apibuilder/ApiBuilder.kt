@@ -29,7 +29,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
         apiFile.writeTo(outputRoot)
     }
 
-    info.types.forEach { typeName, typeInfo -> timing("wrote $typeName") {
+    info.types.forEach { (typeName, typeInfo) -> timing("wrote $typeName") {
         val typeFile = FileSpec.builder("io.neovim.types", typeName).apply {
             addProxyImport()
             addType(createTypeInterface(info, typeName, typeInfo))
