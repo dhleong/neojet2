@@ -149,7 +149,7 @@ class Rpc(
         requestId: Long,
         returnBuffer: Boolean,
         bufferId: Long
-    ): ResponsePacket = select {
+    ): ResponsePacket = coroutineScope { select<ResponsePacket> {
         // prefer a proper response...
         async {
             awaitResponseTo(method, requestId)
@@ -174,13 +174,13 @@ class Rpc(
                 }
             }.onAwait { ResponsePacket(requestId = requestId, result = true) }
         }
-    }
+    } }
 
     private suspend fun fakeBufDetachResponse(
         method: String,
         requestId: Long,
         bufferId: Long
-    ): ResponsePacket = select {
+    ): ResponsePacket = coroutineScope { select<ResponsePacket> {
         // prefer a proper response...
         async {
             awaitResponseTo(method, requestId)
@@ -193,7 +193,7 @@ class Rpc(
                     || it.buffer.id == bufferId
             }
         }.onAwait { ResponsePacket(requestId = requestId, result = true) }
-    }
+    } }
 
     private suspend inline fun <reified T : NeovimEvent> awaitMatchingEvent(
         crossinline matcher: (T) -> Boolean
@@ -225,12 +225,12 @@ class Rpc(
 
     private suspend inline fun <reified T : Packet> firstPacketThat(
         crossinline matching: (packet: T) -> Boolean
-    ): T? {
+    ): T? = coroutineScope {
         // open a channel *first*, in case the packet is broadcast while
         // we're in the lock
         @Suppress("EXPERIMENTAL_API_USAGE")
         val channel = allPackets.openSubscription()
-        return async {
+        return@coroutineScope async {
             channel.firstPacketThat(matching)
         }.also {
             it.invokeOnCompletion { channel.cancel() }
