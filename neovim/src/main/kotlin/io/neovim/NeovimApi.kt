@@ -6,18 +6,11 @@ import io.neovim.types.Buffer
 import io.neovim.types.NeovimApiInfo
 import io.neovim.types.Tabpage
 import io.neovim.types.Window
-import kotlin.Any
-import kotlin.Boolean
-import kotlin.Long
-import kotlin.String
-import kotlin.Suppress
-import kotlin.collections.List
-import kotlin.collections.Map
 
 /**
  * Neovim functional interface
  *
- * Generated from Neovim v0.3.1
+ * Generated from Neovim v0.3.4
  *
  * @author dhleong
  */
@@ -165,6 +158,12 @@ interface NeovimApi {
 
     @ApiMethod("nvim_set_current_tabpage", since = 1)
     suspend fun setCurrentTabpage(tabpage: Tabpage)
+
+    @ApiMethod("nvim_create_namespace", since = 5)
+    suspend fun createNamespace(name: String): Long
+
+    @ApiMethod("nvim_get_namespaces", since = 5)
+    suspend fun getNamespaces(): Map<String, Any>
 
     @ApiMethod("nvim_subscribe", since = 1)
     suspend fun subscribe(event: String)

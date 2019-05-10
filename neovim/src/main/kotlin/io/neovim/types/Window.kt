@@ -13,7 +13,7 @@ import kotlin.Suppress
 /**
  * Interface to "Window" Neovim type
  *
- * Generated from Neovim v0.3.1
+ * Generated from Neovim v0.3.4
  *
  * @author dhleong
  */
@@ -22,6 +22,9 @@ import kotlin.Suppress
 interface Window : NeovimObject {
     @ApiMethod("nvim_win_get_buf", since = 1)
     suspend fun getBuf(): Buffer
+
+    @ApiMethod("nvim_win_set_buf", since = 5)
+    suspend fun setBuf(buffer: Buffer)
 
     @ApiMethod("nvim_win_get_cursor", since = 1)
     suspend fun getCursor(): IntPair

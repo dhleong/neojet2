@@ -15,7 +15,7 @@ import kotlin.collections.Map
 /**
  * Interface to "Buffer" Neovim type
  *
- * Generated from Neovim v0.3.1
+ * Generated from Neovim v0.3.4
  *
  * @author dhleong
  */
@@ -45,6 +45,9 @@ interface Buffer : NeovimObject {
         strictIndexing: Boolean,
         replacement: List<String>
     )
+
+    @ApiMethod("nvim_buf_get_offset", since = 5)
+    suspend fun getOffset(index: Long): Long
 
     @ApiMethod("nvim_buf_get_var", since = 1)
     suspend fun getVar(name: String): Any
@@ -79,6 +82,9 @@ interface Buffer : NeovimObject {
     @ApiMethod("nvim_buf_set_name", since = 1)
     suspend fun setName(name: String)
 
+    @ApiMethod("nvim_buf_is_loaded", since = 5)
+    suspend fun isLoaded(): Boolean
+
     @ApiMethod("nvim_buf_is_valid", since = 1)
     suspend fun isValid(): Boolean
 
@@ -87,19 +93,34 @@ interface Buffer : NeovimObject {
 
     @ApiMethod("nvim_buf_add_highlight", since = 1)
     suspend fun addHighlight(
-        srcId: Long,
+        nsId: Long,
         hlGroup: String,
         line: Long,
         colStart: Long,
         colEnd: Long
     ): Long
 
-    @ApiMethod("nvim_buf_clear_highlight", since = 1)
-    suspend fun clearHighlight(
-        srcId: Long,
+    @ApiMethod("nvim_buf_clear_namespace", since = 5)
+    suspend fun clearNamespace(
+        nsId: Long,
         lineStart: Long,
         lineEnd: Long
     )
+
+    @ApiMethod("nvim_buf_clear_highlight", since = 1)
+    suspend fun clearHighlight(
+        nsId: Long,
+        lineStart: Long,
+        lineEnd: Long
+    )
+
+    @ApiMethod("nvim_buf_set_virtual_text", since = 5)
+    suspend fun setVirtualText(
+        nsId: Long,
+        line: Long,
+        chunks: List<Any>,
+        opts: Map<String, Any>
+    ): Long
 
     companion object : NeovimObject.Factory {
         override fun create(rpc: Rpc, id: Long): Buffer = proxy(rpc, id)

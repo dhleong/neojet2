@@ -14,7 +14,7 @@ import kotlin.collections.List
 /**
  * Interface to "Tabpage" Neovim type
  *
- * Generated from Neovim v0.3.1
+ * Generated from Neovim v0.3.4
  *
  * @author dhleong
  */
