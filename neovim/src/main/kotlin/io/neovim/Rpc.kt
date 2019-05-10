@@ -149,51 +149,58 @@ class Rpc(
         requestId: Long,
         returnBuffer: Boolean,
         bufferId: Long
-    ): ResponsePacket = coroutineScope { select<ResponsePacket> {
+    ): ResponsePacket = select {
         // prefer a proper response...
-        async {
+        scopedAsync {
             awaitResponseTo(method, requestId)
         }.onAwait { it }
 
         // ... but also accept we see nvim_buf_changed_tick
         if (!returnBuffer) {
-            async {
+            scopedAsync {
                 awaitMatchingEvent<BufChangedtickEvent> {
                     bufferId == 0L // "current buffer"
-                        || it.buffer.id == bufferId
+                            || it.buffer.id == bufferId
                 }
             }.onAwait { ResponsePacket(requestId = requestId, result = true) }
         }
 
         // ... or nvim_buf_lines_event
         if (returnBuffer) {
-            async {
+            scopedAsync {
                 awaitMatchingEvent<BufLinesEvent> {
                     bufferId == 0L // "current buffer"
-                            || it.buffer.id == bufferId
+                        || it.buffer.id == bufferId
                 }
             }.onAwait { ResponsePacket(requestId = requestId, result = true) }
         }
-    } }
+    }
 
     private suspend fun fakeBufDetachResponse(
         method: String,
         requestId: Long,
         bufferId: Long
-    ): ResponsePacket = coroutineScope { select<ResponsePacket> {
+    ): ResponsePacket = select {
         // prefer a proper response...
-        async {
+        scopedAsync {
             awaitResponseTo(method, requestId)
         }.onAwait { it }
 
         // ... but also accept we see nvim_buf_detached
-        async {
+        scopedAsync {
             awaitMatchingEvent<BufDetachEvent> {
                 bufferId == 0L // "current buffer"
                     || it.buffer.id == bufferId
             }
         }.onAwait { ResponsePacket(requestId = requestId, result = true) }
-    } }
+    }
+
+    /**
+     * Simple util wrapper to disambiguate the coroutineScope for async {}
+     */
+    private inline fun <T> scopedAsync(
+        crossinline block: suspend () -> T
+    ): Deferred<T> = async { block() }
 
     private suspend inline fun <reified T : NeovimEvent> awaitMatchingEvent(
         crossinline matcher: (T) -> Boolean
@@ -225,12 +232,12 @@ class Rpc(
 
     private suspend inline fun <reified T : Packet> firstPacketThat(
         crossinline matching: (packet: T) -> Boolean
-    ): T? = coroutineScope {
+    ): T? {
         // open a channel *first*, in case the packet is broadcast while
         // we're in the lock
         @Suppress("EXPERIMENTAL_API_USAGE")
         val channel = allPackets.openSubscription()
-        return@coroutineScope async {
+        return scopedAsync {
             channel.firstPacketThat(matching)
         }.also {
             it.invokeOnCompletion { channel.cancel() }
