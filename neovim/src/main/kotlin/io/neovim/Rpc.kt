@@ -1,5 +1,6 @@
 package io.neovim
 
+import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import io.neovim.events.BufChangedtickEvent
 import io.neovim.events.BufDetachEvent
 import io.neovim.events.BufLinesEvent
@@ -63,6 +64,12 @@ class Rpc(
                 input.readPacket()
                     ?: continue // unknown packet; discard and try again
             } catch (e: IOException) {
+                if (e is MismatchedInputException && !job.isActive) {
+                    // the mapper is just upset that it got EOF before it
+                    // could read an object
+                    return@launch
+                }
+
                 e.printStackTrace()
                 break
             }
