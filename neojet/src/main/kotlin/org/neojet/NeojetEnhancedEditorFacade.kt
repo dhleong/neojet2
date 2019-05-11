@@ -61,10 +61,7 @@ class NeojetEnhancedEditorFacade private constructor(
 
             // suppress default handling of special keys so we
             // can let Vim handle it (at least... in normal mode)
-            VimShortcutKeyAction.registerCustomShortcutSet(
-                editor.contentComponent,
-                facade
-            )
+            facade.shortcutKeyAction.install(facade)
 
             if (editor is EditorImpl) {
                 Disposer.register(editor.disposable, facade)
@@ -81,6 +78,14 @@ class NeojetEnhancedEditorFacade private constructor(
         if (!isForOurComponent) {
             // not for our editor; ignore
             return@KeyEventDispatcher false
+        }
+
+        whenIntellijManagesInsertMode {
+            if (isInsertMode && it.keyCode != KeyEvent.VK_ESCAPE) {
+                // let IntelliJ process it in insert mode
+                // (but always handle ESC)
+                return@KeyEventDispatcher false
+            }
         }
 
         when (it.id) {
@@ -133,15 +138,23 @@ class NeojetEnhancedEditorFacade private constructor(
     // TODO handle resize
     var cells = editor.getTextCells()
 
+    // NOTE: we're passing `this` around in this constructor a lot, which
+    // is not a great practice... Future work might be able to refactor this
     val nvim: NeovimApi = NJCore.instance.attach(editor, this)
     private val dispatcher = EventDispatcher(this)
 
     private lateinit var modes: List<ModeInfo>
-    private var mode: ModeInfo? = null
+    private var currentMode: ModeInfo? = null
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    val isInsertMode: Boolean
+        get() = currentMode?.isInsert == true
 
     var editingDocumentFromVim = false
     private var cursorRow: Int = 0
     private var cursorCol: Int = 0
+
+    private val shortcutKeyAction = VimShortcutKeyAction()
 
 //    private val exBuffer = ExBuffer()
 
@@ -167,7 +180,7 @@ class NeojetEnhancedEditorFacade private constructor(
                 if (editingDocumentFromVim) return
 
                 // IntelliJ did some extra edits to the document
-                println("Document changed @${e.offset}: `${e.oldFragment}` -> `${e.newFragment}`")
+                println("Document changed @${e.offset}: `${e.oldFragment}` -> `${e.newFragment}` (${e.isWholeTextReplaced})")
                 val startLine = e.document.getLineNumber(e.offset)
                 val inputEndLine = e.document.getLineNumber(e.offset + e.oldLength)
                 val outputEndLine = e.document.getLineNumber(e.offset + e.newLength)
@@ -175,13 +188,15 @@ class NeojetEnhancedEditorFacade private constructor(
 
                 val lines = e.document.getLines(startLine, outputEndLine)
                 val buffer = editor.buffer ?: throw IllegalStateException("No buffer set")
+
+                val start = startLine.toLong()
+                val end = outputEndLine.toLong() + 1
+
                 corun {
+                    println("setLines($start, $end) <- $lines")
                     buffer.setLines(
-                        start = startLine.toLong(),
-                        end = when {
-                            e.oldLength == 0 -> inputEndLine.toLong()
-                            else -> inputEndLine.toLong() + 1
-                        },
+                        start = start,
+                        end = end,
                         strictIndexing = false,
                         replacement = lines
                     )
@@ -255,6 +270,13 @@ class NeojetEnhancedEditorFacade private constructor(
 
     @HandlesEvent
     fun cursorMoved(event: CursorGoto) {
+        whenIntellijManagesInsertMode {
+            if (isInsertMode) {
+                // allow intellij to manage
+                return
+            }
+        }
+
         cursorRow = event.row.toInt()
         cursorCol = event.col.toInt()
 
@@ -286,7 +308,11 @@ class NeojetEnhancedEditorFacade private constructor(
     @HandlesEvent
     fun modeChange(event: ModeChange) {
         modes[event.modeIdx.toInt()].let {
-            mode = it
+            currentMode = it
+
+            whenIntellijManagesInsertMode {
+                shortcutKeyAction.setInstalled(this, !it.isInsert)
+            }
 
             updateCursor(it)
         }

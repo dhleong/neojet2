@@ -100,5 +100,16 @@ class NeovimApiIntegrationTest {
 //        val result = rpc.request("nvim_buf_attach", listOf(0, false, emptyMap<Any, Any>()), Boolean::class.java)
 //        assert(result.result as Boolean).isTrue()
     }
+
+
+//    @Test(timeout = 1000) fun `Busy open`() = runBlockingUnit {
+//        api.command("setlocal nolist")
+//
+//        // set some content to ensure the buffer is "loaded"
+//        buf.setLines(0, 0, false, listOf("Test"))
+//
+//        val attached = buf.attach(false, emptyMap())
+//        assertThat(attached).isTrue()
+//    }
 }
 

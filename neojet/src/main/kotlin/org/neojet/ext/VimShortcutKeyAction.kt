@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.KeyboardShortcut
+import org.neojet.NeojetEnhancedEditorFacade
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
@@ -14,7 +15,9 @@ import javax.swing.KeyStroke
  *
  * @author dhleong
  */
-object VimShortcutKeyAction : AnAction() {
+class VimShortcutKeyAction : AnAction() {
+
+    private var facade: NeojetEnhancedEditorFacade? = null
 
     init {
         shortcutSet = CustomShortcutSet(
@@ -31,6 +34,28 @@ object VimShortcutKeyAction : AnAction() {
         // facade's keyEventDispatcher do its thing normally.
         // TODO In the future, it might be nice to let the default handling go
         //  through when we're in insert mode....
+    }
+
+    fun install(facade: NeojetEnhancedEditorFacade) {
+        if (this.facade === facade) return // already installed
+        uninstall()
+
+        this.facade = facade
+
+        val contentComponent = facade.editor.contentComponent
+        registerCustomShortcutSet(contentComponent, facade)
+    }
+
+    fun uninstall() {
+        val facade = facade ?: return // already uninstalled
+        this.facade = null
+
+        unregisterCustomShortcutSet(facade.editor.contentComponent)
+    }
+
+    fun setInstalled(facade: NeojetEnhancedEditorFacade, isInstalled: Boolean) {
+        if (isInstalled) install(facade)
+        else uninstall()
     }
 
 }

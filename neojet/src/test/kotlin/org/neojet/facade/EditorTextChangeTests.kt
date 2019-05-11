@@ -1,7 +1,9 @@
 package org.neojet.facade
 
 import com.intellij.ide.highlighter.JavaFileType
+import com.nhaarman.mockitokotlin2.verifyBlocking
 import org.neojet.NeojetTestCase
+import org.neojet.NvimMode
 import org.neojet.util.buffer
 
 /**
@@ -16,6 +18,7 @@ class EditorTextChangeTests : NeojetTestCase() {
         """.trimIndent(),
 
         typeText = "{\n",
+        inMode = NvimMode.INSERT,
 
         after = """
             class Foo {
@@ -23,13 +26,25 @@ class EditorTextChangeTests : NeojetTestCase() {
         """.trimIndent()
     ) {
         val buffer = facade.editor.buffer ?: throw IllegalStateException()
-        // TODO
-//        verifyBlocking(buffer) {
-//            setLines(0, 2, true, listOf(
-//                "class Foo {",
-//                "}"
-//            ))
-//        }
+
+        verifyBlocking(buffer) {
+            setLines(0, 1, false, listOf(
+                "class Foo {"
+            ))
+        }
+
+        verifyBlocking(buffer) {
+            setLines(0, 1, false, listOf(
+                "class Foo {}"
+            ))
+        }
+
+        verifyBlocking(buffer) {
+            setLines(0, 2, false, listOf(
+                "class Foo {",
+                "}"
+            ))
+        }
     }
 
 }

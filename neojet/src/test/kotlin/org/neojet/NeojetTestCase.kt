@@ -9,10 +9,18 @@ import com.nhaarman.mockitokotlin2.mock
 import io.neovim.NeovimApi
 import io.neovim.events.BufLinesEvent
 import io.neovim.events.CursorGoto
+import io.neovim.events.ModeChange
+import io.neovim.events.ModeInfoSet
+import io.neovim.events.params.ModeInfo
 import io.neovim.types.Window
 import org.neojet.ext.createDataContext
 import org.neojet.util.enhanced
 import java.awt.event.KeyEvent
+
+enum class NvimMode {
+    INSERT,
+    NORMAL
+}
 
 /**
  * @author dhleong
@@ -82,12 +90,22 @@ abstract class NeojetTestCase : AbstractNeojetTestCase() {
         before: String,
         typeText: String,
         after: String,
+        inMode: NvimMode = NvimMode.NORMAL,
         block: () -> Unit
     ) = doTest(
         fileType,
         before = before,
         after = after,
         block = {
+            facade.modeInfoSet(ModeInfoSet(true, listOf(
+                ModeInfo(shortName = "n"),
+                ModeInfo(shortName = "i")
+            )))
+            facade.modeChange(ModeChange("m", when (inMode) {
+                NvimMode.NORMAL -> 0
+                NvimMode.INSERT -> 1
+            }))
+
             val handler = EditorActionManager.getInstance().typedAction.rawHandler
             val editor = facade.editor
             val context = editor.createDataContext()

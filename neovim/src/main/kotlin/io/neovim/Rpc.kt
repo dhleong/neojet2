@@ -88,6 +88,7 @@ class Rpc(
     private val packetSender = launch(Dispatchers.IO) {
         val output = this@Rpc.channel
         for (packet in outboundQueue) {
+            println(">> send $packet")
             output.writePacket(packet)
         }
     }
