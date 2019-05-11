@@ -96,11 +96,9 @@ class DefaultNeovimProvider(
 
         // NOTE if a swap file exists for the file, nvim
         // will hang waiting for keyboard input...
-        nvim.command("set noswapfile")
-
         val localFile = vFile.absoluteLocalFile
         val filePath = localFile.absolutePath
-        nvim.command("e! $filePath")
+        nvim.command("noswapfile e! $filePath")
 
         val buffer = nvim.getCurrentBuf()
         editor.buffer = buffer
