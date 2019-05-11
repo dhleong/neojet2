@@ -50,8 +50,6 @@ fun <T : Any> proxy(
             methodInfo[method] = it
         }
 
-        // TODO verify method supported on current API version
-
         val fullArgs: MutableList<Any> = if (customTypeInstanceId != null) {
             // for instance methods, the first argument is always
             // the instance
@@ -73,6 +71,7 @@ fun <T : Any> proxy(
             info.name,
             fullArgs,
             info.resultType,
+            info.sinceVersion,
             continuation
         )
     } as T

@@ -7,6 +7,8 @@ import io.neovim.events.BufLinesEvent
 import io.neovim.events.NeovimEvent
 import io.neovim.rpc.*
 import io.neovim.types.Buffer
+import io.neovim.types.IncompatibleApiException
+import io.neovim.types.NeovimApiInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
@@ -92,11 +94,37 @@ class Rpc(
 
     private val requestTypes = mutableMapOf<Long, Class<*>>()
 
+    private val apiInfo by lazy {
+        runBlocking {
+            request("nvim_get_api_info",
+                resultType = NeovimApiInfo::class.java
+            ).result as? NeovimApiInfo
+        }
+    }
+
     suspend fun request(
         method: String,
         args: Any? = emptyList<Any?>(),
-        resultType: Class<*>? = null
+        resultType: Class<*>? = null,
+        requiredApiLevel: Int = 1
     ): ResponsePacket {
+
+        if (requiredApiLevel > 1) {
+            apiInfo?.let {
+                val version = it.apiMetadata.version
+                if (version.apiLevel < requiredApiLevel) {
+                    throw IncompatibleApiException(
+                        method,
+                        "API level $requiredApiLevel > current API level ${version.apiLevel}"
+                    )
+                } else if (version.apiCompatible > requiredApiLevel) {
+                    throw IncompatibleApiException(
+                        method,
+                        "API compat level ${version.apiCompatible} > required API level $requiredApiLevel"
+                    )
+                }
+            }
+        }
 
         val request = RequestPacket(
             requestId = ids.next(),

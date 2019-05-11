@@ -1,7 +1,13 @@
 package io.neovim
 
 import assertk.assert
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
 import io.neovim.rpc.ResponsePacket
+import io.neovim.types.IncompatibleApiException
+import io.neovim.types.NeovimApiInfo
+import io.neovim.types.NeovimApiMetadata
+import io.neovim.types.NeovimVersion
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -84,5 +90,75 @@ class RpcTest {
             }
         }
     }
+
+    @Suppress("DeferredResultUnused")
+    @Test(timeout = 200) fun `Throw using future API level`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(
+            requestId = 0,
+            result = apiInfo(currentLevel = 5)
+        ))
+        packets.enqueueIncoming(ResponsePacket(requestId = 1))
+
+        assert {
+            runBlocking {
+                rpc.request(
+                    "nvim_fancy_future",
+                    requiredApiLevel = 99
+                )
+            }
+        }.thrownError {
+            isInstanceOf(IncompatibleApiException::class)
+        }
+    }
+
+    @Suppress("DeferredResultUnused")
+    @Test(timeout = 200) fun `Throw using ancient API level`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(
+            requestId = 0,
+            result = apiInfo(currentLevel = 20, compatLevel = 20)
+        ))
+        packets.enqueueIncoming(ResponsePacket(requestId = 1))
+
+        assert {
+            runBlocking {
+                rpc.request(
+                    "nvim_ancient",
+                    requiredApiLevel = 2
+                )
+            }
+        }.thrownError {
+            isInstanceOf(IncompatibleApiException::class)
+        }
+    }
+
+    @Suppress("DeferredResultUnused")
+    @Test(timeout = 200) fun `Allow using current API level`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(
+            requestId = 0,
+            result = apiInfo(currentLevel = 5)
+        ))
+        packets.enqueueIncoming(ResponsePacket(requestId = 1))
+
+        val response = rpc.request(
+            "nvim_fancy_future",
+            requiredApiLevel = 5
+        )
+        assert(response).isNotNull()
+    }
 }
 
+fun apiInfo(currentLevel: Int, compatLevel: Int = 1) = NeovimApiInfo(
+    0,
+    NeovimApiMetadata(
+        version = NeovimVersion(
+            0, 3, 4,
+            apiLevel = currentLevel,
+            apiCompatible = compatLevel,
+            apiPrerelease = false
+        ),
+        functions = emptyList(),
+        types = emptyMap(),
+        uiEvents = emptyList(),
+        uiOptions = emptyList()
+    )
+)
