@@ -24,22 +24,22 @@ private val specialKeyCodes = mapOf(
 )
 
 fun KeyStroke.toVimCode(): String {
-    if (keyCode == KeyEvent.VK_UNDEFINED) {
-        return keyChar.toString()
-    }
-
     val builder = StringBuilder(8)
-    if ((modifiers and KeyEvent.META_MASK) != 0) {
-        builder.append("m-")
-    }
-    if ((modifiers and KeyEvent.CTRL_MASK) != 0) {
-        builder.append("c-")
-    }
-    if ((modifiers and KeyEvent.ALT_MASK) != 0) {
-        builder.append("a-")
-    }
-    if ((modifiers and KeyEvent.SHIFT_MASK) != 0) {
-        builder.append("s-")
+
+    if (keyCode != KeyEvent.VK_UNDEFINED) {
+        // don't add modifiers to keyChar-based strokes (?)
+        if ((modifiers and KeyEvent.META_MASK) != 0) {
+            builder.append("m-")
+        }
+        if ((modifiers and KeyEvent.CTRL_MASK) != 0) {
+            builder.append("c-")
+        }
+        if ((modifiers and KeyEvent.ALT_MASK) != 0) {
+            builder.append("a-")
+        }
+        if ((modifiers and KeyEvent.SHIFT_MASK) != 0) {
+            builder.append("s-")
+        }
     }
 
     val base = specialKeyChars[keyChar]
