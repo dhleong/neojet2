@@ -1,10 +1,8 @@
 package io.neovim
 
-import assertk.assert
-import assertk.assertions.all
-import assertk.assertions.contains
-import assertk.assertions.isEqualTo
-import assertk.assertions.isNotEqualTo
+import assertk.all
+import assertk.assertThat
+import assertk.assertions.*
 import io.neovim.impl.proxy
 import io.neovim.rpc.RequestPacket
 import io.neovim.rpc.ResponsePacket
@@ -19,9 +17,9 @@ import org.junit.Test
  */
 class NeovimApiTest {
 
-    lateinit var api: NeovimApi
-    lateinit var rpc: Rpc
-    lateinit var packets: DummyPacketsChannel
+    private lateinit var api: NeovimApi
+    private lateinit var rpc: Rpc
+    private lateinit var packets: DummyPacketsChannel
 
     @Before fun setUp() {
         packets = DummyPacketsChannel()
@@ -36,10 +34,12 @@ class NeovimApiTest {
     @Test fun `Methods proxy`() = runBlockingUnit {
         packets.enqueueIncoming(ResponsePacket(requestId = 0, result = "mreynolds"))
 
-        assert(api.getCurrentLine()).isEqualTo("mreynolds")
+        assertThat(api.getCurrentLine()).isEqualTo("mreynolds")
 
-        assert(packets.writtenPackets).all {
-            assert(it.actual as RequestPacket).hasMethod("nvim_get_current_line")
+        assertThat(packets.writtenPackets).each {
+            it.isInstanceOf(RequestPacket::class.java).all {
+                hasMethod("nvim_get_current_line")
+            }
         }
     }
 
@@ -47,34 +47,34 @@ class NeovimApiTest {
         val buffer = proxy<Buffer>(rpc, 1)
         val win = proxy<Window>(rpc, 1)
 
-        assert(buffer.toString()) {
+        assertThat(buffer.toString()).all {
             doesNotContain("proxy")
             contains("Buffer")
             contains("${buffer.id}")
         }
-        assert(buffer).isEqualTo(buffer)
-        assert(buffer.hashCode()).isEqualTo(buffer.hashCode())
+        assertThat(buffer).isEqualTo(buffer)
+        assertThat(buffer.hashCode()).isEqualTo(buffer.hashCode())
 
-        assert(win.toString()) {
+        assertThat(win.toString()).all {
             doesNotContain("proxy")
             contains("Window")
             contains("${win.id}")
         }
-        assert(win).isEqualTo(win)
-        assert(win.hashCode()).isEqualTo(win.hashCode())
+        assertThat(win).isEqualTo(win)
+        assertThat(win.hashCode()).isEqualTo(win.hashCode())
 
-        assert(win).isNotEqualTo(buffer)
-        assert(buffer).isNotEqualTo(win)
-        assert(win.hashCode()).isNotEqualTo(buffer.hashCode())
+        assertThat(win).isNotEqualTo(buffer)
+        assertThat(buffer).isNotEqualTo(win)
+        assertThat(win.hashCode()).isNotEqualTo(buffer.hashCode())
     }
 
     @Test fun `Custom type identity works across instances`() {
         val buf1 = proxy<Buffer>(rpc, 1)
         val buf2 = proxy<Buffer>(rpc, 1)
 
-        assert(buf1).isEqualTo(buf2)
-        assert(buf2).isEqualTo(buf1)
-        assert(buf1.hashCode()).isEqualTo(buf2.hashCode())
+        assertThat(buf1).isEqualTo(buf2)
+        assertThat(buf2).isEqualTo(buf1)
+        assertThat(buf1.hashCode()).isEqualTo(buf2.hashCode())
     }
 
 

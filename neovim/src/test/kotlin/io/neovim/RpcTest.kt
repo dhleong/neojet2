@@ -1,6 +1,6 @@
 package io.neovim
 
-import assertk.assert
+import assertk.assertThat
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import io.neovim.rpc.ResponsePacket
@@ -32,7 +32,7 @@ class RpcTest {
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
         packets.enqueueIncoming(ResponsePacket(requestId = 0))
         val response = rpc.request("test")
-        assert(response).hasRequestId(0)
+        assertThat(response).hasRequestId(0)
     }
 
     @Suppress("DeferredResultUnused")
@@ -42,12 +42,12 @@ class RpcTest {
 
         coroutineScope {
             val response = rpc.request("test0")
-            assert(response).hasRequestId(0)
+            assertThat(response).hasRequestId(0)
         }
 
         coroutineScope {
             val response = rpc.request("test1")
-            assert(response).hasRequestId(1)
+            assertThat(response).hasRequestId(1)
         }
     }
 
@@ -59,12 +59,12 @@ class RpcTest {
         coroutineScope {
             async {
                 val response = rpc.request("test0")
-                assert(response).hasRequestId(0)
+                assertThat(response).hasRequestId(0)
             }
 
             async {
                 val response = rpc.request("test1")
-                assert(response).hasRequestId(1)
+                assertThat(response).hasRequestId(1)
             }
         }
     }
@@ -77,7 +77,7 @@ class RpcTest {
         coroutineScope {
             async {
                 val response = rpc.request("test0")
-                assert(response).hasRequestId(0)
+                assertThat(response).hasRequestId(0)
             }
 
             // due to this delay, the test1 packet might
@@ -86,7 +86,7 @@ class RpcTest {
 
             async {
                 val response = rpc.request("test1")
-                assert(response).hasRequestId(1)
+                assertThat(response).hasRequestId(1)
             }
         }
     }
@@ -99,7 +99,7 @@ class RpcTest {
         ))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
 
-        assert {
+        assertThat {
             runBlocking {
                 rpc.request(
                     "nvim_fancy_future",
@@ -119,7 +119,7 @@ class RpcTest {
         ))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
 
-        assert {
+        assertThat {
             runBlocking {
                 rpc.request(
                     "nvim_ancient",
@@ -143,7 +143,7 @@ class RpcTest {
             "nvim_fancy_future",
             requiredApiLevel = 5
         )
-        assert(response).isNotNull()
+        assertThat(response).isNotNull()
     }
 }
 

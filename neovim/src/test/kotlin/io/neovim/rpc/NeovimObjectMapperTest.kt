@@ -1,6 +1,7 @@
 package io.neovim.rpc
 
-import assertk.assert
+import assertk.all
+import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
@@ -35,7 +36,7 @@ class NeovimObjectMapperTest {
         val serialized = mapper.writeValueAsBytes(packet)
 
         val reconstituted = mapper.readValue(serialized, Packet::class.java)
-        assert(reconstituted).isEqualTo(packet)
+        assertThat(reconstituted).isEqualTo(packet)
     }
 
     @Test fun `Response Packet Round trip`() {
@@ -46,7 +47,7 @@ class NeovimObjectMapperTest {
         val serialized = mapper.writeValueAsBytes(packet)
 
         val reconstituted = mapper.readValue(serialized, Packet::class.java)
-        assert(reconstituted).isEqualTo(packet)
+        assertThat(reconstituted).isEqualTo(packet)
     }
 
     @Test fun `Parse Notification with arguments`() {
@@ -54,7 +55,7 @@ class NeovimObjectMapperTest {
             "resize", [4, 2]
         """.trimIndent())
 
-        assert(read).isEqualTo(Resize(4, 2))
+        assertThat(read).isEqualTo(Resize(4, 2))
     }
 
     @Test fun `Parse Notification without arguments`() {
@@ -62,7 +63,7 @@ class NeovimObjectMapperTest {
             "bell", []
         """.trimIndent())
 
-        assert(read).isEqualTo(Bell)
+        assertThat(read).isEqualTo(Bell)
     }
 
     @Test fun `Parse Unknown Notification without arguments`() {
@@ -70,7 +71,7 @@ class NeovimObjectMapperTest {
             "docking_request", []
         """.trimIndent())
 
-        assert(read).isNull()
+        assertThat(read).isNull()
     }
 
     @Test fun `Parse Unknown Notification with arguments`() {
@@ -78,7 +79,7 @@ class NeovimObjectMapperTest {
             "docking_request", ["serenity"]
         """.trimIndent())
 
-        assert(read).isNull()
+        assertThat(read).isNull()
     }
 
     @Test fun `Parse Redraw notification`() {
@@ -89,7 +90,7 @@ class NeovimObjectMapperTest {
             ]
         """.trimIndent())
 
-        assert(read).isEqualTo(Redraw(listOf(
+        assertThat(read).isEqualTo(Redraw(listOf(
             Put("z"),
             Put("o"),
             Put("e"),
@@ -105,7 +106,7 @@ class NeovimObjectMapperTest {
             ]
         """.trimIndent())
 
-        assert(read).isEqualTo(Redraw(listOf(
+        assertThat(read).isEqualTo(Redraw(listOf(
             Flush,
             Put("z"),
             Put("o"),
@@ -124,7 +125,7 @@ class NeovimObjectMapperTest {
             ]
         """.trimIndent())
 
-        assert(read).isEqualTo(Redraw(listOf(
+        assertThat(read).isEqualTo(Redraw(listOf(
             Flush,
             Put("z"),
             Put("o"),
@@ -147,10 +148,10 @@ class NeovimObjectMapperTest {
         ))
 
         val reconstituted = mapper.readValue(serialized, Packet::class.java)
-        assert(reconstituted).isNotNull {
-            it.isInstanceOf(TablineUpdate::class.java)
+        assertThat(reconstituted).isNotNull().all {
+            isInstanceOf(TablineUpdate::class.java)
         }
-        assert((reconstituted as TablineUpdate).current.id).isEqualTo(42L)
+        assertThat((reconstituted as TablineUpdate).current.id).isEqualTo(42L)
     }
 
     @Test fun `Parse embedded objects in redraw notifications`() {
@@ -173,14 +174,14 @@ class NeovimObjectMapperTest {
         ))
 
         val reconstituted = mapper.readValue(serialized, Packet::class.java)
-        assert(reconstituted).isNotNull {
-            it.isInstanceOf(Redraw::class.java)
+        assertThat(reconstituted).isNotNull().all {
+            isInstanceOf(Redraw::class.java)
         }
         val update = (reconstituted as Redraw).events[0]
-        assert(update).isNotNull {
-            it.isInstanceOf(TablineUpdate::class.java)
+        assertThat(update).isNotNull().all {
+            isInstanceOf(TablineUpdate::class.java)
         }
-        assert((update as TablineUpdate).current.id).isEqualTo(42L)
+        assertThat((update as TablineUpdate).current.id).isEqualTo(42L)
     }
 
     @Test fun `Handle custom notification types`() {
@@ -191,8 +192,8 @@ class NeovimObjectMapperTest {
         val event = readNotificationFromJson("""
             "docking_request", ["ariel"]
         """.trimIndent())
-        assert(event).isNotNull {
-            it.isInstanceOf(DockingRequest::class.java)
+        assertThat(event).isNotNull().all {
+            isInstanceOf(DockingRequest::class.java)
         }
     }
 
@@ -206,10 +207,10 @@ class NeovimObjectMapperTest {
         val serialized = mapper.writeValueAsBytes(original)
 
         val reconstituted = mapper.readValue(serialized, Packet::class.java)
-        assert(reconstituted).isNotNull {
-            it.isInstanceOf(BufDetachEvent::class.java)
+        assertThat(reconstituted).isNotNull().all {
+            isInstanceOf(BufDetachEvent::class.java)
         }
-        assert((reconstituted as BufDetachEvent).buffer.id).isEqualTo(42L)
+        assertThat((reconstituted as BufDetachEvent).buffer.id).isEqualTo(42L)
     }
 
     private fun readNotificationFromJson(json: String): Packet? =

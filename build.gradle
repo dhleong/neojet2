@@ -22,7 +22,7 @@ ext.vs = [
     coroutines: '1.2.1',
 
     test: [
-        assertk: '0.9',
+        assertk: '0.13',
         junit: '4.12',
         mockitoKotlin: '2.1.0',
     ],
@@ -48,7 +48,7 @@ ext.deps = [
     ],
 
     test: [
-        assertk: "com.willowtreeapps.assertk:assertk:${vs.test.assertk}",
+        assertk: "com.willowtreeapps.assertk:assertk-jvm:${vs.test.assertk}",
         junit: "junit:junit:${vs.test.junit}",
         mockito: "com.nhaarman.mockitokotlin2:mockito-kotlin:${vs.test.mockitoKotlin}",
     ],

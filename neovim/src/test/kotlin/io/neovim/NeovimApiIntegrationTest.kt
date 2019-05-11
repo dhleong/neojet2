@@ -1,6 +1,7 @@
 package io.neovim
 
-import assertk.assert
+import assertk.all
+import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
@@ -34,18 +35,18 @@ class NeovimApiIntegrationTest {
     }
 
     @Test fun `Basic API calls work`() = runBlockingUnit {
-        assert(api.getCurrentLine()).isInstanceOf(String::class.java)
+        assertThat(api.getCurrentLine()).isInstanceOf(String::class.java)
     }
 
     @Test fun `Custom types get decoded`() = runBlockingUnit {
-        assert(api.getCurrentBuf()).isInstanceOf(Buffer::class.java)
+        assertThat(api.getCurrentBuf()).isInstanceOf(Buffer::class.java)
     }
 
     @Test fun `Custom types get encoded`() = runBlockingUnit {
         val buf = api.getCurrentBuf()
-        assert(buf).isInstanceOf(Buffer::class.java)
+        assertThat(buf).isInstanceOf(Buffer::class.java)
 
-        assert {
+        assertThat {
             runBlocking {
                 api.setCurrentBuf(buf)
             }
@@ -55,16 +56,16 @@ class NeovimApiIntegrationTest {
     @Test fun `Instance methods on custom types work`() = runBlockingUnit {
         val buffer = api.getCurrentBuf()
 
-        assert(buffer.isValid()).isTrue()
-        assert(buffer.getName()).isEqualTo("")
-        assert(buffer.getNumber()).isEqualTo(1L)
+        assertThat(buffer.isValid()).isTrue()
+        assertThat(buffer.getName()).isEqualTo("")
+        assertThat(buffer.getNumber()).isEqualTo(1L)
     }
 
     @Test fun `Arguments to methods on custom types work`() = runBlockingUnit {
         val win = api.getCurrentWin()
 
-        assert(win.isValid()).isTrue()
-        assert {
+        assertThat(win.isValid()).isTrue()
+        assertThat {
             runBlocking {
                 win.setCursor(IntPair(1, 0))
             }
@@ -75,8 +76,8 @@ class NeovimApiIntegrationTest {
         api.uiAttach(10, 10, emptyMap())
 
         val nextEvent = api.nextEvent()
-        assert(nextEvent).isNotNull {
-            it.isInstanceOf(NeovimEvent::class)
+        assertThat(nextEvent).isNotNull().all {
+            isInstanceOf(NeovimEvent::class)
         }
     }
 
@@ -87,7 +88,7 @@ class NeovimApiIntegrationTest {
         buf.setLines(0, 0, false, listOf("Test"))
 
         val attached = buf.attach(false, emptyMap())
-        assert(attached).isTrue()
+        assertThat(attached).isTrue()
 
 //        rpc.send(RequestPacket(
 //            requestId = 0,

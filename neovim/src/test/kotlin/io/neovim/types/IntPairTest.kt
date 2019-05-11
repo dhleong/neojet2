@@ -1,6 +1,6 @@
 package io.neovim.types
 
-import assertk.assert
+import assertk.assertThat
 import assertk.assertions.isEqualTo
 import io.neovim.DummyPacketsChannel
 import io.neovim.Rpc
@@ -23,7 +23,7 @@ class IntPairTest {
         pack.packInt(42)
         pack.packInt(9001)
 
-        assert(bytes.toList())
+        assertThat(bytes.toList())
             .isEqualTo(pack.toByteArray().toList())
     }
 }

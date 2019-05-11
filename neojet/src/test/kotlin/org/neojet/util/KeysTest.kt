@@ -1,7 +1,7 @@
 package org.neojet.util
 
 import assertk.Assert
-import assertk.assert
+import assertk.assertThat
 import assertk.assertions.support.expected
 import assertk.assertions.support.show
 import com.nhaarman.mockitokotlin2.mock
@@ -15,48 +15,48 @@ import javax.swing.KeyStroke
  */
 class KeysTest {
     @Test fun `Simple keys`() {
-        assert("C").hasVimCode("c")
-        assert("1").hasVimCode("1")
+        assertThat("C").hasVimCode("c")
+        assertThat("1").hasVimCode("1")
     }
 
     @Test fun `Keys with Modifiers`() {
-        assert("control C").hasVimCode("<c-c>")
-        assert("alt C").hasVimCode("<a-c>")
-        assert("meta C").hasVimCode("<m-c>")
-        assert("control shift C").hasVimCode("<c-s-c>")
-        assert("alt shift C").hasVimCode("<a-s-c>")
-        assert("control alt C").hasVimCode("<c-a-c>")
-        assert("control alt shift C").hasVimCode("<c-a-s-c>")
-        assert("meta control alt shift C").hasVimCode("<m-c-a-s-c>")
+        assertThat("control C").hasVimCode("<c-c>")
+        assertThat("alt C").hasVimCode("<a-c>")
+        assertThat("meta C").hasVimCode("<m-c>")
+        assertThat("control shift C").hasVimCode("<c-s-c>")
+        assertThat("alt shift C").hasVimCode("<a-s-c>")
+        assertThat("control alt C").hasVimCode("<c-a-c>")
+        assertThat("control alt shift C").hasVimCode("<c-a-s-c>")
+        assertThat("meta control alt shift C").hasVimCode("<m-c-a-s-c>")
     }
 
     @Test fun `Symbol keys`() {
         val bracketEvent = keyPressedEvent('{', modifiers = KeyEvent.SHIFT_DOWN_MASK)
-        assert(bracketEvent).hasVimCode("{")
+        assertThat(bracketEvent).hasVimCode("{")
 
         val parenEvent = keyPressedEvent('(', modifiers = KeyEvent.SHIFT_DOWN_MASK)
-        assert(parenEvent).hasVimCode("(")
+        assertThat(parenEvent).hasVimCode("(")
     }
 
     @Test fun `Special Keys`() {
-        assert('<').hasVimCode("<lt>")
-        assert('>').hasVimCode("<gt>")
+        assertThat('<').hasVimCode("<lt>")
+        assertThat('>').hasVimCode("<gt>")
 
-        assert("UP").hasVimCode("<up>")
-        assert("DOWN").hasVimCode("<down>")
-        assert("LEFT").hasVimCode("<left>")
-        assert("RIGHT").hasVimCode("<right>")
+        assertThat("UP").hasVimCode("<up>")
+        assertThat("DOWN").hasVimCode("<down>")
+        assertThat("LEFT").hasVimCode("<left>")
+        assertThat("RIGHT").hasVimCode("<right>")
 
-        assert("ENTER").hasVimCode("<cr>")
+        assertThat("ENTER").hasVimCode("<cr>")
     }
 
     @Test fun `Backspace works`() {
-        assert("BACK_SPACE").hasVimCode("<bs>")
-        assert('\u007F').hasVimCode("<bs>")
+        assertThat("BACK_SPACE").hasVimCode("<bs>")
+        assertThat('\u007F').hasVimCode("<bs>")
     }
 }
 
-private fun Assert<Any>.hasVimCode(expectedVimCode: String) {
+private fun Assert<Any>.hasVimCode(expectedVimCode: String) = given { actual ->
     val stroke = when (val it = actual) {
         is Char -> stroke(it)
         is String -> stroke(it)
