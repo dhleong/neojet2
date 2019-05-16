@@ -28,18 +28,21 @@ private fun coroutineName(): String {
 }
 fun log(message: String) = println("[${coroutineName()}] $message")
 
+const val DEFAULT_TIMEOUT_MS = 1500L
+
 /**
  * @author dhleong
  */
 class Rpc(
     private val channel: PacketsChannel,
     private val ids: IdAllocator = SimpleIdAllocator(),
-    private val responseTimeoutMillis: Long = 1500
+    private val responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS
 ) : AutoCloseable, CoroutineScope {
 
     constructor(
         channel: NeovimChannel,
-        customEventTypes: Map<String, Class<out NeovimEvent>> = emptyMap()
+        customEventTypes: Map<String, Class<out NeovimEvent>> = emptyMap(),
+        responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS
     ) : this(
         ObjectMapperPacketsChannel(channel, customEventTypes)
     )
@@ -316,15 +319,19 @@ class Rpc(
         requestTypes.remove(requestId)
 
     companion object {
-        fun create(channelFactory: NeovimChannel.Factory): Rpc {
-            try {
-                return Rpc(channelFactory.create())
-            } catch (e: Exception) {
-                throw IllegalArgumentException(
-                    "Unable to connect to Neovim via $channelFactory",
-                    e
-                )
-            }
+        fun create(
+            channelFactory: NeovimChannel.Factory,
+            responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS
+        ): Rpc = try {
+            Rpc(
+                channelFactory.create(),
+                responseTimeoutMillis = responseTimeoutMillis
+            )
+        } catch (e: Exception) {
+            throw IllegalArgumentException(
+                "Unable to connect to Neovim via $channelFactory",
+                e
+            )
         }
     }
 }
