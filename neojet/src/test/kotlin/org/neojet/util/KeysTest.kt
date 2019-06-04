@@ -30,6 +30,11 @@ class KeysTest {
         assertThat("meta control alt shift C").hasVimCode("<m-c-a-s-c>")
     }
 
+    @Test fun `Pressed keys with Modifiers`() {
+        val ctrlAEvent = keyPressedEvent(65, modifiers = KeyEvent.CTRL_DOWN_MASK)
+        assertThat(ctrlAEvent).hasVimCode("<c-a>")
+    }
+
     @Test fun `Symbol keys`() {
         val bracketEvent = keyPressedEvent('{', modifiers = KeyEvent.SHIFT_DOWN_MASK)
         assertThat(bracketEvent).hasVimCode("{")
@@ -77,3 +82,7 @@ private fun keyPressedEvent(keyChar: Char, modifiers: Int): Any {
     return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, KeyEvent.VK_UNDEFINED, keyChar)
 }
 
+private fun keyPressedEvent(keyCode: Int, modifiers: Int): Any {
+    val source = mock<Component> {  }
+    return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, keyCode, 1.toChar())
+}
