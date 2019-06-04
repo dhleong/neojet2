@@ -44,7 +44,8 @@ class Rpc(
         customEventTypes: Map<String, Class<out NeovimEvent>> = emptyMap(),
         responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS
     ) : this(
-        ObjectMapperPacketsChannel(channel, customEventTypes)
+        ObjectMapperPacketsChannel(channel, customEventTypes),
+        responseTimeoutMillis = responseTimeoutMillis
     )
 
     init {
@@ -59,6 +60,8 @@ class Rpc(
     private val allPackets = BroadcastChannel<Packet>(16)
     private val availablePackets = mutableSetOf<Packet>()
     private val availablePacketsLock = ReentrantLock()
+    private val availableResponses = mutableMapOf<Long, ResponsePacket>()
+    private val outstandingRequests = mutableMapOf<Long, CompletableDeferred<ResponsePacket?>>()
 
     @ExperimentalCoroutinesApi
     private val packetProducer = launch(Dispatchers.IO) {
@@ -80,6 +83,17 @@ class Rpc(
             }
 
             println("<< read $packet")
+
+            if (packet is ResponsePacket) {
+                val outstanding = outstandingRequests[packet.requestId]
+                if (outstanding != null) {
+                    outstanding.complete(packet)
+                } else {
+                    availableResponses[packet.requestId] = packet
+                }
+                continue
+            }
+
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }
@@ -173,9 +187,23 @@ class Rpc(
 
     private suspend fun awaitResponseTo(
         method: String, requestId: Long
-    ) = firstPacketThat<ResponsePacket> {
-        it.requestId == requestId
-    } ?: throw IllegalStateException("Never received response to $method")
+    ): ResponsePacket {
+        val pending = availableResponses.remove(requestId)
+        if (pending != null) {
+            // fast path; we already got it
+            return pending
+        }
+
+        val deferred = CompletableDeferred<ResponsePacket?>(job)
+        deferred.invokeOnCompletion {
+            outstandingRequests.remove(requestId)
+        }
+
+        outstandingRequests[requestId] = deferred
+
+        return deferred.await()
+            ?: throw IllegalStateException("Never received response to $method")
+    }
 
     private fun Any?.toBufferId() =
         (this as? Buffer)?.id
