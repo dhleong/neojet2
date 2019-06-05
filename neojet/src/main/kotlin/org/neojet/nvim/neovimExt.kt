@@ -9,6 +9,6 @@ suspend fun NeovimApi.input(key: KeyEvent) {
     val code = key.toVimCode()
     if (code.isEmpty()) return
 
-    println("input($code) <- $key (stroke=${key.toKeyStroke()})")
+    println("input($code) <- (char#${key.keyChar.toInt()}) $key (stroke=${key.toKeyStroke()})")
     input(code)
 }
