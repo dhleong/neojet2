@@ -132,7 +132,7 @@ class RpcTest {
     }
 
     @Suppress("DeferredResultUnused")
-    @Test(timeout = 200) fun `Allow using current API level`() = runBlockingUnit {
+    @Test(timeout = 500) fun `Allow using current API level`() = runBlockingUnit {
         packets.enqueueIncoming(ResponsePacket(
             requestId = 0,
             result = apiInfo(currentLevel = 5)

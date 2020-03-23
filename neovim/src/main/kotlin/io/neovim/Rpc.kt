@@ -14,10 +14,10 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 
 private fun coroutineName(): String {
@@ -52,14 +52,14 @@ class Rpc(
         channel.setRpc(this)
     }
 
-    private val job = SupervisorJob().apply { start() }
+    private val job = SupervisorJob()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job
 
     @ExperimentalCoroutinesApi
     private val allPackets = BroadcastChannel<Packet>(16)
     private val availablePackets = mutableSetOf<Packet>()
-    private val availablePacketsLock = ReentrantLock()
+    private val availablePacketsLock = Mutex()
     private val availableResponses = mutableMapOf<Long, ResponsePacket>()
     private val outstandingRequests = mutableMapOf<Long, CompletableDeferred<ResponsePacket?>>()
 
@@ -178,6 +178,7 @@ class Rpc(
             }
         }
 
+        println("start timer($responseTimeoutMillis) for $method @ ${request.requestId}")
         return withTimeoutOrNull(responseTimeoutMillis) {
             awaitResponseTo(method, request.requestId)
         } ?: throw TimeoutException(
@@ -188,18 +189,20 @@ class Rpc(
     private suspend fun awaitResponseTo(
         method: String, requestId: Long
     ): ResponsePacket {
-        val pending = availableResponses.remove(requestId)
-        if (pending != null) {
-            // fast path; we already got it
-            return pending
-        }
-
+        // enqueue a deferred *first* in case the response comes in early
         val deferred = CompletableDeferred<ResponsePacket?>(job)
         deferred.invokeOnCompletion {
             outstandingRequests.remove(requestId)
         }
 
         outstandingRequests[requestId] = deferred
+
+        val pending = availableResponses.remove(requestId)
+        if (pending != null) {
+            // if the response came in before we enqueued our deferred,
+            //  handle it here
+            deferred.complete(pending)
+        }
 
         return deferred.await()
             ?: throw IllegalStateException("Never received response to $method")
