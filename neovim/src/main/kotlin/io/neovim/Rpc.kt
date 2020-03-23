@@ -52,7 +52,7 @@ class Rpc(
         channel.setRpc(this)
     }
 
-    private val job = Job()
+    private val job = SupervisorJob().apply { start() }
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job
 
