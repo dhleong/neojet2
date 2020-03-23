@@ -77,12 +77,12 @@ private fun Assert<Any>.hasVimCode(expectedVimCode: String) = given { actual ->
 private fun stroke(char: Char) = KeyStroke.getKeyStroke(char)
 private fun stroke(string: String) = KeyStroke.getKeyStroke(string)
 
-private fun keyPressedEvent(keyChar: Char, modifiers: Int): Any {
+private fun keyPressedEvent(keyChar: Char, modifiers: Int): KeyEvent {
     val source = mock<Component> {  }
     return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, KeyEvent.VK_UNDEFINED, keyChar)
 }
 
-private fun keyPressedEvent(keyCode: Int, modifiers: Int): Any {
+private fun keyPressedEvent(keyCode: Int, modifiers: Int): KeyEvent {
     val source = mock<Component> {  }
     return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, keyCode, 1.toChar())
 }

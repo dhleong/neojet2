@@ -46,7 +46,7 @@ fun KeyStroke.toVimCode(): String {
         ?: specialKeyCodes[keyCode]
         ?: keyCode.codeToVkKeyName()
         ?: if (keyChar != KeyEvent.CHAR_UNDEFINED) keyChar.toString()
-           else null
+            else null
         ?: ""
 
     return when {
@@ -60,7 +60,7 @@ fun KeyStroke.toVimCode(): String {
 
 fun KeyEvent.toVimCode() = toKeyStroke().toVimCode()
 
-fun KeyEvent.toKeyStroke() = when {
+fun KeyEvent.toKeyStroke(): KeyStroke = when {
     keyCode != KeyEvent.VK_UNDEFINED -> KeyStroke.getKeyStroke(keyCode, modifiers, id == KeyEvent.KEY_RELEASED)
     keyChar != KeyEvent.CHAR_UNDEFINED -> KeyStroke.getKeyStroke(keyChar, modifiers)
     else -> KeyStroke.getKeyStrokeForEvent(this)
@@ -86,5 +86,7 @@ private val vkKeyCodeToNameMap by lazy {
 }
 
 private fun Int.codeToVkKeyName(): String? =
-    vkKeyCodeToNameMap[this]
+    if (this != KeyEvent.VK_UNDEFINED) {
+        vkKeyCodeToNameMap[this]
+    } else null
 
