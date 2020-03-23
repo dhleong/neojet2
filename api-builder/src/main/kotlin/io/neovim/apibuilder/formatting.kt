@@ -12,8 +12,7 @@ fun NeovimApiType.toTypeName(): TypeName = when (this) {
     "ArrayOf(Integer, 2)" -> IntPair::class.asClassName()
     "Boolean" -> BOOLEAN
     "Dictionary" -> Map::class.asClassName().parameterizedBy(
-        // hax to avoid unnecessary kotlin.String package name
-        ClassName("", "String"),
+        String::class.asClassName(),
         ANY
     )
     "Float" -> DOUBLE

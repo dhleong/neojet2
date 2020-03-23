@@ -11,6 +11,8 @@ import io.neovim.types.NeovimApiMetadata
 import java.io.File
 import kotlin.reflect.full.findAnnotation
 
+const val INDENT = "    "
+
 /**
  * @author dhleong
  */
@@ -23,6 +25,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
 
     timing("wrote API interface") {
         val apiFile = FileSpec.builder("io.neovim", "NeovimApi").apply {
+            indent(INDENT)
             addProxyImport()
             addType(createApiInterface(info))
         }.build()
@@ -31,6 +34,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
 
     info.types.forEach { (typeName, typeInfo) -> timing("wrote $typeName") {
         val typeFile = FileSpec.builder("io.neovim.types", typeName).apply {
+            indent(INDENT)
             addProxyImport()
             addType(createTypeInterface(info, typeName, typeInfo))
         }.build()
@@ -41,6 +45,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
     val baseEventName = ClassName("io.neovim.events", "NeovimEvent")
     timing("wrote events") {
         val eventsFile = FileSpec.builder("io.neovim.events", "events").apply {
+            indent(INDENT)
 
             addComment("""
                 Sealed class implementations of Neovim event types, so you can
@@ -84,6 +89,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
 
     timing("wrote events map") {
         val eventsMapFile = FileSpec.builder("io.neovim.events", "map").apply {
+            indent(INDENT)
             addFunction(FunSpec.builder("createEventTypesMap").apply {
                 addModifiers(KModifier.INTERNAL)
                 addKdoc("""
@@ -94,6 +100,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
                     @author dhleong
 
                 """.trimIndent())
+
 
                 val returnType = ClassName("kotlin.collections", "MutableMap").parameterizedBy(
                     String::class.asTypeName(),

@@ -39,7 +39,7 @@ ext.deps = [
         swing: "org.jetbrains.kotlinx:kotlinx-coroutines-swing:${vs.coroutines}",
         reflect: 'org.jetbrains.kotlin:kotlin-reflect',
 
-        poet: 'com.squareup:kotlinpoet:1.2.0',
+        poet: 'com.squareup:kotlinpoet:1.5.0',
     ],
 
     msgpack: [

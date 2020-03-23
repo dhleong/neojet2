@@ -15,7 +15,7 @@ import kotlin.collections.Map
 /**
  * Interface to "Buffer" Neovim type
  *
- * Generated from Neovim v0.3.4
+ * Generated from Neovim v0.4.3
  *
  * @author dhleong
  */
@@ -57,6 +57,17 @@ interface Buffer : NeovimObject {
 
     @ApiMethod("nvim_buf_get_keymap", since = 3)
     suspend fun getKeymap(mode: String): List<Map<String, Any>>
+
+    @ApiMethod("nvim_buf_set_keymap", since = 6)
+    suspend fun setKeymap(
+        mode: String,
+        lhs: String,
+        rhs: String,
+        opts: Map<String, Any>
+    )
+
+    @ApiMethod("nvim_buf_del_keymap", since = 6)
+    suspend fun delKeymap(mode: String, lhs: String)
 
     @ApiMethod("nvim_buf_get_commands", since = 4)
     suspend fun getCommands(opts: Map<String, Any>): Map<String, Any>

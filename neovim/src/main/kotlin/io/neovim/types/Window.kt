@@ -9,11 +9,12 @@ import kotlin.Boolean
 import kotlin.Long
 import kotlin.String
 import kotlin.Suppress
+import kotlin.collections.Map
 
 /**
  * Interface to "Window" Neovim type
  *
- * Generated from Neovim v0.3.4
+ * Generated from Neovim v0.4.3
  *
  * @author dhleong
  */
@@ -70,6 +71,15 @@ interface Window : NeovimObject {
 
     @ApiMethod("nvim_win_is_valid", since = 1)
     suspend fun isValid(): Boolean
+
+    @ApiMethod("nvim_win_set_config", since = 6)
+    suspend fun setConfig(config: Map<String, Any>)
+
+    @ApiMethod("nvim_win_get_config", since = 6)
+    suspend fun getConfig(): Map<String, Any>
+
+    @ApiMethod("nvim_win_close", since = 6)
+    suspend fun close(force: Boolean)
 
     companion object : NeovimObject.Factory {
         override fun create(rpc: Rpc, id: Long): Window = proxy(rpc, id)

@@ -6,11 +6,18 @@ import io.neovim.types.Buffer
 import io.neovim.types.NeovimApiInfo
 import io.neovim.types.Tabpage
 import io.neovim.types.Window
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.Suppress
+import kotlin.collections.List
+import kotlin.collections.Map
 
 /**
  * Neovim functional interface
  *
- * Generated from Neovim v0.3.4
+ * Generated from Neovim v0.4.3
  *
  * @author dhleong
  */
@@ -41,6 +48,16 @@ interface NeovimApi {
     @ApiMethod("nvim_ui_set_option", since = 1)
     suspend fun uiSetOption(name: String, value: Any)
 
+    @ApiMethod("nvim_ui_try_resize_grid", since = 6)
+    suspend fun uiTryResizeGrid(
+        grid: Long,
+        width: Long,
+        height: Long
+    )
+
+    @ApiMethod("nvim_ui_pum_set_height", since = 6)
+    suspend fun uiPumSetHeight(height: Long)
+
     @ApiMethod("nvim_command", since = 1)
     suspend fun command(command: String)
 
@@ -59,6 +76,16 @@ interface NeovimApi {
 
     @ApiMethod("nvim_input", since = 1)
     suspend fun input(keys: String): Long
+
+    @ApiMethod("nvim_input_mouse", since = 6)
+    suspend fun inputMouse(
+        button: String,
+        action: String,
+        modifier: String,
+        grid: Long,
+        row: Long,
+        col: Long
+    )
 
     @ApiMethod("nvim_replace_termcodes", since = 1)
     suspend fun replaceTermcodes(
@@ -117,6 +144,9 @@ interface NeovimApi {
     @ApiMethod("nvim_get_vvar", since = 1)
     suspend fun getVvar(name: String): Any
 
+    @ApiMethod("nvim_set_vvar", since = 6)
+    suspend fun setVvar(name: String, value: Any)
+
     @ApiMethod("nvim_get_option", since = 1)
     suspend fun getOption(name: String): Any
 
@@ -150,6 +180,16 @@ interface NeovimApi {
     @ApiMethod("nvim_set_current_win", since = 1)
     suspend fun setCurrentWin(window: Window)
 
+    @ApiMethod("nvim_create_buf", since = 6)
+    suspend fun createBuf(listed: Boolean, scratch: Boolean): Buffer
+
+    @ApiMethod("nvim_open_win", since = 6)
+    suspend fun openWin(
+        buffer: Buffer,
+        enter: Boolean,
+        config: Map<String, Any>
+    ): Window
+
     @ApiMethod("nvim_list_tabpages", since = 1)
     suspend fun listTabpages(): List<Tabpage>
 
@@ -165,6 +205,21 @@ interface NeovimApi {
     @ApiMethod("nvim_get_namespaces", since = 5)
     suspend fun getNamespaces(): Map<String, Any>
 
+    @ApiMethod("nvim_paste", since = 6)
+    suspend fun paste(
+        data: String,
+        crlf: Boolean,
+        phase: Long
+    ): Boolean
+
+    @ApiMethod("nvim_put", since = 6)
+    suspend fun put(
+        lines: List<String>,
+        type: String,
+        after: Boolean,
+        follow: Boolean
+    )
+
     @ApiMethod("nvim_subscribe", since = 1)
     suspend fun subscribe(event: String)
 
@@ -177,11 +232,28 @@ interface NeovimApi {
     @ApiMethod("nvim_get_color_map", since = 1)
     suspend fun getColorMap(): Map<String, Any>
 
+    @ApiMethod("nvim_get_context", since = 6)
+    suspend fun getContext(opts: Map<String, Any>): Map<String, Any>
+
+    @ApiMethod("nvim_load_context", since = 6)
+    suspend fun loadContext(dict: Map<String, Any>): Any
+
     @ApiMethod("nvim_get_mode", since = 2)
     suspend fun getMode(): Map<String, Any>
 
     @ApiMethod("nvim_get_keymap", since = 3)
     suspend fun getKeymap(mode: String): List<Map<String, Any>>
+
+    @ApiMethod("nvim_set_keymap", since = 6)
+    suspend fun setKeymap(
+        mode: String,
+        lhs: String,
+        rhs: String,
+        opts: Map<String, Any>
+    )
+
+    @ApiMethod("nvim_del_keymap", since = 6)
+    suspend fun delKeymap(mode: String, lhs: String)
 
     @ApiMethod("nvim_get_commands", since = 4)
     suspend fun getCommands(opts: Map<String, Any>): Map<String, Any>
@@ -222,6 +294,14 @@ interface NeovimApi {
 
     @ApiMethod("nvim_get_proc", since = 4)
     suspend fun getProc(pid: Long): Any
+
+    @ApiMethod("nvim_select_popupmenu_item", since = 6)
+    suspend fun selectPopupmenuItem(
+        item: Long,
+        insert: Boolean,
+        finish: Boolean,
+        opts: Map<String, Any>
+    )
 
     companion object {
         fun create(rpc: Rpc): NeovimApi = proxy(rpc)
