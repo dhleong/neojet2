@@ -8,6 +8,7 @@ import javax.swing.KeyStroke
  * @author dhleong
  */
 private val specialKeyChars = mapOf(
+    '\u238b' to "ESC",
     '\u007F' to "BS",
     '\n' to "CR",
     '<' to "LT",
@@ -17,13 +18,14 @@ private val specialKeyChars = mapOf(
 private val specialKeyCodes = mapOf(
     8 to "BS",
     10 to "CR",
+    27 to "ESC",
     37 to "LEFT",
     38 to "UP",
     39 to "RIGHT",
     40 to "DOWN"
 )
 
-fun KeyStroke.toVimCode(): String {
+fun KeyInfo.toVimCode(): String {
     val builder = StringBuilder(8)
 
     if (keyCode != KeyEvent.VK_UNDEFINED) {
@@ -44,9 +46,10 @@ fun KeyStroke.toVimCode(): String {
 
     val base = specialKeyChars[keyChar]
         ?: specialKeyCodes[keyCode]
-        ?: keyCode.codeToVkKeyName()
         ?: if (keyChar != KeyEvent.CHAR_UNDEFINED) keyChar.toString()
             else null
+        ?: keyCode.codeToVkKeyName()
+//        ?: if (keyCode.)
         ?: ""
 
     return when {
@@ -58,13 +61,19 @@ fun KeyStroke.toVimCode(): String {
     }
 }
 
-fun KeyEvent.toVimCode() = toKeyStroke().toVimCode()
+data class KeyInfo(
+    val keyCode: Int = KeyEvent.VK_UNDEFINED,
+    val keyChar: Char = KeyEvent.CHAR_UNDEFINED,
+    val modifiers: Int = 0
+)
 
-fun KeyEvent.toKeyStroke(): KeyStroke = when {
-    keyCode != KeyEvent.VK_UNDEFINED -> KeyStroke.getKeyStroke(keyCode, modifiers, id == KeyEvent.KEY_RELEASED)
-    keyChar != KeyEvent.CHAR_UNDEFINED -> KeyStroke.getKeyStroke(keyChar, modifiers)
-    else -> KeyStroke.getKeyStrokeForEvent(this)
-}
+fun KeyEvent.toVimCode() = toKeyInfo().toVimCode()
+
+fun KeyEvent.toKeyInfo(): KeyInfo = KeyInfo(
+    keyCode = keyCode,
+    keyChar = keyChar,
+    modifiers = modifiers
+)
 
 fun KeyStroke.toEventFor(component: JComponent) = KeyEvent(
     component,

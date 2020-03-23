@@ -41,6 +41,12 @@ class KeysTest {
 
         val parenEvent = keyPressedEvent('(', modifiers = KeyEvent.SHIFT_DOWN_MASK)
         assertThat(parenEvent).hasVimCode("(")
+
+        assertThat('/').hasVimCode("/")
+        assertThat(keyPressedEvent('/', modifiers = 0)).hasVimCode("/")
+
+        val qmarkEvent = keyPressedEvent('?', modifiers = KeyEvent.SHIFT_DOWN_MASK)
+        assertThat(qmarkEvent).hasVimCode("?")
     }
 
     @Test fun `Special Keys`() {
@@ -55,6 +61,12 @@ class KeysTest {
         assertThat("ENTER").hasVimCode("<cr>")
     }
 
+    @Test fun `Various incantations of Escape`() {
+        assertThat('⎋').hasVimCode("<esc>")
+        assertThat(keyTypedEvent('⎋')).hasVimCode("<esc>")
+        assertThat(keyPressedEvent(27, modifiers = 0)).hasVimCode("<esc>")
+    }
+
     @Test fun `Backspace works`() {
         assertThat("BACK_SPACE").hasVimCode("<bs>")
         assertThat('\u007F').hasVimCode("<bs>")
@@ -65,8 +77,8 @@ private fun Assert<Any>.hasVimCode(expectedVimCode: String) = given { actual ->
     val stroke = when (val it = actual) {
         is Char -> stroke(it)
         is String -> stroke(it)
-        is KeyStroke -> it
-        is KeyEvent -> it.toKeyStroke()
+        is KeyStroke -> it.toEventFor(mock {  }).toKeyInfo()
+        is KeyEvent -> it.toKeyInfo()
         else -> throw IllegalArgumentException()
     }
     val actualCode = stroke.toVimCode()
@@ -74,8 +86,8 @@ private fun Assert<Any>.hasVimCode(expectedVimCode: String) = given { actual ->
     expected("${show(stroke)} (${show(stroke.keyCode)}) to have vim code `$expectedVimCode` but was `$actualCode`")
 }
 
-private fun stroke(char: Char) = KeyStroke.getKeyStroke(char)
-private fun stroke(string: String) = KeyStroke.getKeyStroke(string)
+private fun stroke(char: Char) = KeyStroke.getKeyStroke(char).toEventFor(mock {  }).toKeyInfo()
+private fun stroke(string: String) = KeyStroke.getKeyStroke(string).toEventFor(mock {  }).toKeyInfo()
 
 private fun keyPressedEvent(keyChar: Char, modifiers: Int): KeyEvent {
     val source = mock<Component> {  }
@@ -84,5 +96,10 @@ private fun keyPressedEvent(keyChar: Char, modifiers: Int): KeyEvent {
 
 private fun keyPressedEvent(keyCode: Int, modifiers: Int): KeyEvent {
     val source = mock<Component> {  }
-    return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, keyCode, 1.toChar())
+    return KeyEvent(source, KeyEvent.KEY_PRESSED, 0L, modifiers, keyCode, KeyEvent.CHAR_UNDEFINED)
+}
+
+private fun keyTypedEvent(keyChar: Char, modifiers: Int = 0): KeyEvent {
+    val source = mock<Component> {  }
+    return KeyEvent(source, KeyEvent.KEY_TYPED, 0L, modifiers, KeyEvent.VK_UNDEFINED, keyChar)
 }
