@@ -12,10 +12,14 @@ import io.neovim.NeovimApi
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.rpc.channels.FallbackChannelFactory
 import io.neovim.rpc.channels.SocketChannel
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import org.neojet.events.DefaultEventDaemon
 import org.neojet.events.EventDaemon
 import org.neojet.util.enhanced
 import java.awt.KeyboardFocusManager
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * @author dhleong
@@ -25,11 +29,14 @@ class NJCore : BaseComponent, Disposable {
     val nvim: NeovimApi
         get() = provider.api
 
+    lateinit var dispatcher: ExecutorCoroutineDispatcher
+
     private var provider = providerFactory.create()
     private var events = eventsFactory.create()
 
     override fun initComponent() {
         super.initComponent()
+        dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
         EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
             override fun editorReleased(event: EditorFactoryEvent) {
@@ -54,6 +61,7 @@ class NJCore : BaseComponent, Disposable {
     override fun disposeComponent() {
         provider.close()
         events.stop()
+        (dispatcher.executor as ExecutorService).shutdown()
         super.disposeComponent()
     }
 

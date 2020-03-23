@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.neojet.NJCore
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.logging.Logger
@@ -24,7 +25,7 @@ fun corun(
     block: suspend () -> Unit
 ): Job {
     val context: CoroutineContext = when (on) {
-        On.BG -> Dispatchers.IO
+        On.BG -> NJCore.instance.dispatcher
         On.UI -> Dispatchers.Main
     }
 
