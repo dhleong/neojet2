@@ -70,8 +70,7 @@ fun <T : Any> proxy(
             rpc,
             info.name,
             fullArgs,
-            info.resultType,
-            info.sinceVersion,
+            info,
             continuation
         )
     } as T
@@ -130,6 +129,7 @@ private fun <T> handleSimpleMethods(
 data class ApiMethodInfo(
     val name: String,
     val sinceVersion: Int,
+    val deprecatedSinceVersion: Int,
     val resultType: Class<*>
 ) {
     companion object {
@@ -141,6 +141,7 @@ data class ApiMethodInfo(
             return ApiMethodInfo(
                 name = annotation.name,
                 sinceVersion = annotation.since,
+                deprecatedSinceVersion = annotation.deprecatedSince,
                 resultType = kmethod.returnType.jvmErasure.java
             )
         }

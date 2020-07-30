@@ -33,11 +33,11 @@ interface NeovimApi {
      */
     suspend fun nextEvent(): NeovimEvent?
 
-    @ApiMethod("buffer_get_line", since = 0)
+    @ApiMethod("buffer_get_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferGetLine(buffer: Buffer, index: Long): String
 
-    @ApiMethod("buffer_set_line", since = 0)
+    @ApiMethod("buffer_set_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferSetLine(
         buffer: Buffer,
@@ -45,11 +45,11 @@ interface NeovimApi {
         line: String
     )
 
-    @ApiMethod("buffer_del_line", since = 0)
+    @ApiMethod("buffer_del_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferDelLine(buffer: Buffer, index: Long)
 
-    @ApiMethod("buffer_get_line_slice", since = 0)
+    @ApiMethod("buffer_get_line_slice", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferGetLineSlice(
         buffer: Buffer,
@@ -59,7 +59,7 @@ interface NeovimApi {
         includeEnd: Boolean
     ): List<String>
 
-    @ApiMethod("buffer_set_line_slice", since = 0)
+    @ApiMethod("buffer_set_line_slice", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferSetLineSlice(
         buffer: Buffer,
@@ -70,7 +70,7 @@ interface NeovimApi {
         replacement: List<String>
     )
 
-    @ApiMethod("buffer_set_var", since = 0)
+    @ApiMethod("buffer_set_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferSetVar(
         buffer: Buffer,
@@ -78,11 +78,11 @@ interface NeovimApi {
         value: Any
     ): Any
 
-    @ApiMethod("buffer_del_var", since = 0)
+    @ApiMethod("buffer_del_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferDelVar(buffer: Buffer, name: String): Any
 
-    @ApiMethod("buffer_insert", since = 0)
+    @ApiMethod("buffer_insert", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun bufferInsert(
         buffer: Buffer,
@@ -97,7 +97,7 @@ interface NeovimApi {
         options: Map<String, Any>
     )
 
-    @ApiMethod("ui_attach", since = 0)
+    @ApiMethod("ui_attach", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun uiAttach(
         width: Long,
@@ -207,11 +207,11 @@ interface NeovimApi {
     @ApiMethod("nvim_del_var", since = 1)
     suspend fun delVar(name: String)
 
-    @ApiMethod("vim_set_var", since = 0)
+    @ApiMethod("vim_set_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetVar(name: String, value: Any): Any
 
-    @ApiMethod("vim_del_var", since = 0)
+    @ApiMethod("vim_del_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimDelVar(name: String): Any
 
@@ -377,7 +377,7 @@ interface NeovimApi {
         opts: Map<String, Any>
     )
 
-    @ApiMethod("window_set_var", since = 0)
+    @ApiMethod("window_set_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun windowSetVar(
         window: Window,
@@ -385,15 +385,15 @@ interface NeovimApi {
         value: Any
     ): Any
 
-    @ApiMethod("window_del_var", since = 0)
+    @ApiMethod("window_del_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun windowDelVar(window: Window, name: String): Any
 
-    @ApiMethod("vim_command", since = 0)
+    @ApiMethod("vim_command", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimCommand(command: String)
 
-    @ApiMethod("vim_feedkeys", since = 0)
+    @ApiMethod("vim_feedkeys", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimFeedkeys(
         keys: String,
@@ -401,11 +401,11 @@ interface NeovimApi {
         escapeCsi: Boolean
     )
 
-    @ApiMethod("vim_input", since = 0)
+    @ApiMethod("vim_input", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimInput(keys: String): Long
 
-    @ApiMethod("vim_replace_termcodes", since = 0)
+    @ApiMethod("vim_replace_termcodes", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimReplaceTermcodes(
         str: String,
@@ -414,123 +414,123 @@ interface NeovimApi {
         special: Boolean
     ): String
 
-    @ApiMethod("vim_command_output", since = 0)
+    @ApiMethod("vim_command_output", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimCommandOutput(command: String): String
 
-    @ApiMethod("vim_eval", since = 0)
+    @ApiMethod("vim_eval", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimEval(expr: String): Any
 
-    @ApiMethod("vim_call_function", since = 0)
+    @ApiMethod("vim_call_function", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimCallFunction(fn: String, args: List<Any>): Any
 
-    @ApiMethod("vim_strwidth", since = 0)
+    @ApiMethod("vim_strwidth", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimStrwidth(text: String): Long
 
-    @ApiMethod("vim_list_runtime_paths", since = 0)
+    @ApiMethod("vim_list_runtime_paths", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimListRuntimePaths(): List<String>
 
-    @ApiMethod("vim_change_directory", since = 0)
+    @ApiMethod("vim_change_directory", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimChangeDirectory(dir: String)
 
-    @ApiMethod("vim_get_current_line", since = 0)
+    @ApiMethod("vim_get_current_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetCurrentLine(): String
 
-    @ApiMethod("vim_set_current_line", since = 0)
+    @ApiMethod("vim_set_current_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetCurrentLine(line: String)
 
-    @ApiMethod("vim_del_current_line", since = 0)
+    @ApiMethod("vim_del_current_line", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimDelCurrentLine()
 
-    @ApiMethod("vim_get_var", since = 0)
+    @ApiMethod("vim_get_var", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetVar(name: String): Any
 
-    @ApiMethod("vim_get_vvar", since = 0)
+    @ApiMethod("vim_get_vvar", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetVvar(name: String): Any
 
-    @ApiMethod("vim_get_option", since = 0)
+    @ApiMethod("vim_get_option", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetOption(name: String): Any
 
-    @ApiMethod("vim_set_option", since = 0)
+    @ApiMethod("vim_set_option", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetOption(name: String, value: Any)
 
-    @ApiMethod("vim_out_write", since = 0)
+    @ApiMethod("vim_out_write", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimOutWrite(str: String)
 
-    @ApiMethod("vim_err_write", since = 0)
+    @ApiMethod("vim_err_write", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimErrWrite(str: String)
 
-    @ApiMethod("vim_report_error", since = 0)
+    @ApiMethod("vim_report_error", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimReportError(str: String)
 
-    @ApiMethod("vim_get_buffers", since = 0)
+    @ApiMethod("vim_get_buffers", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetBuffers(): List<Buffer>
 
-    @ApiMethod("vim_get_current_buffer", since = 0)
+    @ApiMethod("vim_get_current_buffer", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetCurrentBuffer(): Buffer
 
-    @ApiMethod("vim_set_current_buffer", since = 0)
+    @ApiMethod("vim_set_current_buffer", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetCurrentBuffer(buffer: Buffer)
 
-    @ApiMethod("vim_get_windows", since = 0)
+    @ApiMethod("vim_get_windows", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetWindows(): List<Window>
 
-    @ApiMethod("vim_get_current_window", since = 0)
+    @ApiMethod("vim_get_current_window", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetCurrentWindow(): Window
 
-    @ApiMethod("vim_set_current_window", since = 0)
+    @ApiMethod("vim_set_current_window", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetCurrentWindow(window: Window)
 
-    @ApiMethod("vim_get_tabpages", since = 0)
+    @ApiMethod("vim_get_tabpages", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetTabpages(): List<Tabpage>
 
-    @ApiMethod("vim_get_current_tabpage", since = 0)
+    @ApiMethod("vim_get_current_tabpage", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetCurrentTabpage(): Tabpage
 
-    @ApiMethod("vim_set_current_tabpage", since = 0)
+    @ApiMethod("vim_set_current_tabpage", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSetCurrentTabpage(tabpage: Tabpage)
 
-    @ApiMethod("vim_subscribe", since = 0)
+    @ApiMethod("vim_subscribe", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimSubscribe(event: String)
 
-    @ApiMethod("vim_unsubscribe", since = 0)
+    @ApiMethod("vim_unsubscribe", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimUnsubscribe(event: String)
 
-    @ApiMethod("vim_name_to_color", since = 0)
+    @ApiMethod("vim_name_to_color", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimNameToColor(name: String): Long
 
-    @ApiMethod("vim_get_color_map", since = 0)
+    @ApiMethod("vim_get_color_map", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetColorMap(): Map<String, Any>
 
-    @ApiMethod("vim_get_api_info", since = 0)
+    @ApiMethod("vim_get_api_info", since = 0, deprecatedSince = 1)
     @Deprecated("Deprecated since 1")
     suspend fun vimGetApiInfo(): List<Any>
 

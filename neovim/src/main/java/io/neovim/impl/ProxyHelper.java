@@ -21,12 +21,11 @@ class ProxyHelper {
         Rpc rpc,
         String method,
         List<Object> args,
-        Class<?> resultType,
-        int requiredApiLevel,
+        ApiMethodInfo info,
         Continuation<? super Object> continuation
     ) {
         final Object result = rpc.request(
-                method, args, resultType, requiredApiLevel,
+                method, args, info,
                 new ExceptionReportingContinuation(
                         continuation,
                         method,

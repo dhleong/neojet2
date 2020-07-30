@@ -7,6 +7,7 @@ import io.neovim.events.BufChangedtickEvent
 import io.neovim.events.BufDetachEvent
 import io.neovim.events.BufLinesEvent
 import io.neovim.events.NeovimEvent
+import io.neovim.impl.ApiMethodInfo
 import io.neovim.rpc.*
 import io.neovim.types.Buffer
 import io.neovim.types.IncompatibleApiException
@@ -113,9 +114,15 @@ class Rpc(
     private val requestTypes = mutableMapOf<Long, Class<*>>()
 
     private val apiInfo by lazy {
+        val apiMethodInfo = ApiMethodInfo(
+            name = "nvim_get_api_info",
+            sinceVersion = 1,
+            deprecatedSinceVersion = -1,
+            resultType = NeovimApiInfo::class.java
+        )
         runBlocking {
             request("nvim_get_api_info",
-                resultType = NeovimApiInfo::class.java
+                methodInfo = apiMethodInfo
             ).result as? NeovimApiInfo
         }
     }
@@ -123,9 +130,12 @@ class Rpc(
     suspend fun request(
         method: String,
         args: Any? = emptyList<Any?>(),
-        resultType: Class<*>? = null,
-        requiredApiLevel: Int = 1
+        methodInfo: ApiMethodInfo? = null
     ): ResponsePacket {
+        val requiredApiLevel = methodInfo?.sinceVersion ?: 1
+        if (methodInfo != null && methodInfo.deprecatedSinceVersion > -1) {
+            log("WARN: deprecated method use: $method is deprecated since API ${methodInfo.deprecatedSinceVersion}")
+        }
 
         if (requiredApiLevel > 1) {
             apiInfo?.let {
@@ -150,8 +160,8 @@ class Rpc(
             args = args
         )
 
-        if (resultType != null) {
-            requestTypes[request.requestId] = resultType
+        if (methodInfo?.resultType != null) {
+            requestTypes[request.requestId] = methodInfo.resultType
         }
 
         send(request)

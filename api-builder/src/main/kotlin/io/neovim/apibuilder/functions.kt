@@ -42,7 +42,11 @@ fun NeovimApiFunction.toFunSpec(
 
 fun NeovimApiCallable.createApiMethodAnnotation() =
     AnnotationSpec.builder(ApiMethod::class).apply {
-        addMember("%S, since = %L", name, since)
+        if (isDeprecated) {
+            addMember("%S, since = %L, deprecatedSince = %L", name, since, deprecatedSince)
+        } else {
+            addMember("%S, since = %L", name, since)
+        }
     }.build()
 
 /**

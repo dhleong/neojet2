@@ -85,7 +85,7 @@ interface Buffer : NeovimObject {
     @ApiMethod("nvim_buf_set_option", since = 1)
     suspend fun setOption(name: String, value: Any)
 
-    @ApiMethod("nvim_buf_get_number", since = 1)
+    @ApiMethod("nvim_buf_get_number", since = 1, deprecatedSince = 2)
     @Deprecated("Deprecated since 2")
     suspend fun getNumber(): Long
 
