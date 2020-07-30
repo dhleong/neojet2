@@ -3,7 +3,6 @@ package org.neojet.nvim
 import io.neovim.NeovimApi
 import io.neovim.Rpc
 import io.neovim.rpc.NeovimChannel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * @author dhleong
@@ -23,7 +22,6 @@ class NvimWrapper(
     val isConnected: Boolean
         get() = myRpc != null
 
-    @ExperimentalCoroutinesApi
     private fun open(): NeovimApi {
         if (myInstance != null) throw IllegalStateException()
 

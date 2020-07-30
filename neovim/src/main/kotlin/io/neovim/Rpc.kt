@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package io.neovim
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
@@ -56,14 +58,12 @@ class Rpc(
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job
 
-    @ExperimentalCoroutinesApi
     private val allPackets = BroadcastChannel<Packet>(16)
     private val availablePackets = mutableSetOf<Packet>()
     private val availablePacketsLock = Mutex()
     private val availableResponses = mutableMapOf<Long, ResponsePacket>()
     private val outstandingRequests = mutableMapOf<Long, CompletableDeferred<ResponsePacket?>>()
 
-    @ExperimentalCoroutinesApi
     private val packetProducer = launch(Dispatchers.IO) {
         val input = this@Rpc.channel
 
@@ -305,7 +305,6 @@ class Rpc(
     ): T? {
         // open a channel *first*, in case the packet is broadcast while
         // we're in the lock
-        @Suppress("EXPERIMENTAL_API_USAGE")
         val channel = allPackets.openSubscription()
         return scopedAsync {
             channel.firstPacketThat(matching)
