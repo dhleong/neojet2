@@ -39,8 +39,11 @@ fun createApiInterface(
         """.trimIndent())
     }.build())
 
-    for (fn in info.functions) {
-        if (fn.isMethod || fn.isDeprecated) continue
+    val allFunctions = info.functions.toMutableList().apply {
+        removeDeprecatedDuplicates()
+    }
+    for (fn in allFunctions) {
+        if (fn.isMethod || fn.isGone(info.version)) continue
 
         addFunction(fn.toFunSpec())
     }

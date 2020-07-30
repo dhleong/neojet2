@@ -48,8 +48,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
             indent(INDENT)
 
             addComment("""
-                Sealed class implementations of Neovim event types, so you can
-                use an exhaustive `when ()` on a bare instance.
+                Implementations of core Neovim event types.
 
                 ${info.formatGenerated()}
 

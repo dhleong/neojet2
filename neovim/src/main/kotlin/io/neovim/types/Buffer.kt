@@ -6,6 +6,7 @@ import io.neovim.Rpc
 import io.neovim.impl.proxy
 import kotlin.Any
 import kotlin.Boolean
+import kotlin.Deprecated
 import kotlin.Long
 import kotlin.String
 import kotlin.Suppress
@@ -85,6 +86,7 @@ interface Buffer : NeovimObject {
     suspend fun setOption(name: String, value: Any)
 
     @ApiMethod("nvim_buf_get_number", since = 1)
+    @Deprecated("Deprecated since 2")
     suspend fun getNumber(): Long
 
     @ApiMethod("nvim_buf_get_name", since = 1)

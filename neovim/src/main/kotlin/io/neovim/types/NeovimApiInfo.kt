@@ -36,6 +36,8 @@ data class NeovimVersion(
 // in the future we could wrap this type somehow
 typealias NeovimApiType = String
 
+const val API_OLD_LEVELS = 5
+
 interface NeovimApiCallable {
     val parameters: List<NeovimApiParameter>
     val name: String
@@ -44,6 +46,9 @@ interface NeovimApiCallable {
 
     val isDeprecated: Boolean
         get() = deprecatedSince != -1
+
+    fun isGone(version: NeovimVersion) =
+        isDeprecated && deprecatedSince < version.apiCompatible
  }
 
 data class NeovimApiFunction(

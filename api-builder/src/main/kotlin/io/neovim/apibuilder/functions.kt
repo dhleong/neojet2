@@ -11,6 +11,12 @@ fun NeovimApiFunction.toFunSpec(
 ) = FunSpec.builder(formatName(prefix)).apply {
     addAnnotation(createApiMethodAnnotation())
 
+    if (isDeprecated) {
+        addAnnotation(AnnotationSpec.builder(Deprecated::class).apply {
+            addMember("%S", "Deprecated since $deprecatedSince")
+        }.build())
+    }
+
     addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND)
 
     this@toFunSpec.parameters.forEachIndexed { index, param ->
@@ -49,7 +55,27 @@ private fun resultTypeForFn(name: String): TypeName? = when (name) {
     else -> null
 }
 
-private fun NeovimApiFunction.formatName(prefix: String?) =
+private fun NeovimApiFunction.formatName(prefix: String? = null) =
     name.removePrefix(prefix ?: "nvim_")
         .toCamelCase()
 
+fun MutableList<NeovimApiFunction>.removeDeprecatedDuplicates() {
+    val iter = iterator()
+    while (iter.hasNext()) {
+        val candidate = iter.next()
+        if (!candidate.isDeprecated) continue
+
+        // scan for a matching signature that's not deprecated
+        for (other in this) {
+            if (
+                !other.isDeprecated &&
+                other.formatName() == candidate.formatName() &&
+                    other.parameters == candidate.parameters
+            ) {
+                println("Omit deprecated, conflicting method: $candidate (vs $other)")
+                iter.remove()
+                break
+            }
+        }
+    }
+}

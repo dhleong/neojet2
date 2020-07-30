@@ -1,5 +1,4 @@
-// Sealed class implementations of Neovim event types, so you can
-// use an exhaustive `when ()` on a bare instance.
+// Implementations of core Neovim event types.
 //
 // Generated from Neovim v0.4.3
 //
