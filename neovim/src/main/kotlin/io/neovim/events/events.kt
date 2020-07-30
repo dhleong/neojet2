@@ -4,6 +4,8 @@
 //
 // @author dhleong
 //
+@file:Suppress("unused")
+
 package io.neovim.events
 
 import com.fasterxml.jackson.annotation.JsonFormat
@@ -21,6 +23,7 @@ import kotlin.Boolean
 import kotlin.Double
 import kotlin.Long
 import kotlin.String
+import kotlin.Suppress
 import kotlin.collections.List
 import kotlin.collections.Map
 

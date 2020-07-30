@@ -31,6 +31,10 @@ fun createEvent(
     superclass(baseClass)
     addAnnotation(event.createApiMethodAnnotation())
 
+    if (event.isDeprecated) {
+        addAnnotation(event.createDeprecatedAnnotation())
+    }
+
     if (event.parameters.isNotEmpty()) {
         // data classes must have at least one parameter
         addModifiers(KModifier.DATA)

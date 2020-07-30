@@ -55,8 +55,15 @@ fun String.toCamelCase() = StringBuilder().also { builder ->
 fun NeovimApiMetadata.formatGenerated(): String =
     "Generated from Neovim v${version.major}.${version.minor}.${version.patch}"
 
-fun TypeSpec.Builder.suppressUnusedWarnings() {
-    addAnnotation(AnnotationSpec.builder(Suppress::class).apply {
+private fun createSuppressUnusedAnnotation() =
+    AnnotationSpec.builder(Suppress::class).apply {
         addMember("%S", "unused")
-    }.build())
+    }.build()
+
+fun TypeSpec.Builder.suppressUnusedWarnings() {
+    addAnnotation(createSuppressUnusedAnnotation())
+}
+
+fun FileSpec.Builder.suppressUnusedWarnings() {
+    addAnnotation(createSuppressUnusedAnnotation())
 }

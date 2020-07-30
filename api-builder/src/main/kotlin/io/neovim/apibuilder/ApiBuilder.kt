@@ -45,6 +45,8 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
     val baseEventName = ClassName("io.neovim.events", "NeovimEvent")
     timing("wrote events") {
         val eventsFile = FileSpec.builder("io.neovim.events", "events").apply {
+            suppressUnusedWarnings()
+
             indent(INDENT)
 
             addComment("""
@@ -77,7 +79,7 @@ suspend fun main(args: Array<String>) = timing("generate all interfaces") {
             }.build())
 
             info.uiEvents.filter {
-                !it.isDeprecated
+                !it.isGone(info.version)
             }.forEach { event ->
                 addType(createEvent(baseEventName, event))
             }

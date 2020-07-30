@@ -12,9 +12,7 @@ fun NeovimApiFunction.toFunSpec(
     addAnnotation(createApiMethodAnnotation())
 
     if (isDeprecated) {
-        addAnnotation(AnnotationSpec.builder(Deprecated::class).apply {
-            addMember("%S", "Deprecated since $deprecatedSince")
-        }.build())
+        addAnnotation(createDeprecatedAnnotation())
     }
 
     addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND)
@@ -47,6 +45,11 @@ fun NeovimApiCallable.createApiMethodAnnotation() =
         } else {
             addMember("%S, since = %L", name, since)
         }
+    }.build()
+
+fun NeovimApiCallable.createDeprecatedAnnotation() =
+    AnnotationSpec.builder(Deprecated::class).apply {
+        addMember("%S", "Deprecated since $deprecatedSince")
     }.build()
 
 /**
