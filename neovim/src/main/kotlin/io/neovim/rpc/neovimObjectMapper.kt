@@ -1,6 +1,7 @@
 package io.neovim.rpc
 
 import com.fasterxml.jackson.core.*
+import com.fasterxml.jackson.core.io.JsonEOFException
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -10,6 +11,7 @@ import io.neovim.events.Redraw
 import io.neovim.events.createEventTypesMap
 import io.neovim.rpc.impl.*
 import org.msgpack.jackson.dataformat.MessagePackFactory
+import java.io.EOFException
 import java.io.IOException
 
 /**
@@ -111,9 +113,21 @@ private class ObjectMapperModule(
 
             val contents = mutableListOf<NeovimEvent>()
 
-            while (nextToken() == JsonToken.START_ARRAY) {
+            println("START redraw array")
+            while (true) {
+                val startSubEventToken = try {
+                    nextToken()
+                } catch (e: JsonEOFException) {
+                    println("EOF: ${e.tokenBeingDecoded}")
+                    throw e
+                }
+                if (startSubEventToken != JsonToken.START_ARRAY) {
+                    break
+                }
+
                 val name = nextString()
                 val type = eventsMap[name]
+                println("REDRAW: $name -> $type")
                 if (type == null) {
                     // skip unknown events
                     while (nextToken() == JsonToken.START_ARRAY) {
@@ -122,9 +136,21 @@ private class ObjectMapperModule(
                     continue
                 }
 
-                while (nextToken() != JsonToken.END_ARRAY) {
+                while (true) {
+                    val next = nextToken()
+                    if (next == JsonToken.END_ARRAY) {
+                        println("endArray")
+                        break
+                    }
+
                     expect(JsonToken.START_ARRAY)
-                    val subEvent = readEventValue(type) ?: break // no more
+                    val subEvent = readEventValue(type)
+                    if (subEvent == null) {
+                        // no more
+                        println("No more $type")
+                        break
+                    }
+                    println("subEvent = $subEvent")
                     contents.add(subEvent)
                 }
                 expect(JsonToken.END_ARRAY)
@@ -147,7 +173,6 @@ private class ObjectMapperModule(
             val tree = readValueAsTree<TreeNode>()
             return codec.treeAsTokens(tree)
                 .inflateNextEventValue(type)
-//            return inflateNextEventValue(type) as Packet
         }
 
         private fun JsonParser.inflateNextEventValue(

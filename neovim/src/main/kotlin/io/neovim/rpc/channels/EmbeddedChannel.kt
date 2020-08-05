@@ -2,6 +2,7 @@ package io.neovim.rpc.channels
 
 import io.neovim.rpc.NeovimChannel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -19,7 +20,7 @@ class EmbeddedChannel(
     private val job = Job()
 
     init {
-        CoroutineScope(job).launch {
+        GlobalScope.launch(job) {
             try {
                 process.errorStream.bufferedReader().lines().forEach {
                     println("ERROR: $it")
