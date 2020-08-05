@@ -129,7 +129,7 @@ private fun <T> handleSimpleMethods(
 data class ApiMethodInfo(
     val name: String,
     val sinceVersion: Int,
-    val deprecatedSinceVersion: Int,
+    val deprecatedSinceVersion: Int = -1,
     val resultType: Class<*>
 ) {
     companion object {

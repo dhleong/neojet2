@@ -3,6 +3,7 @@ package io.neovim
 import assertk.assertThat
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import io.neovim.impl.ApiMethodInfo
 import io.neovim.rpc.ResponsePacket
 import io.neovim.types.IncompatibleApiException
 import io.neovim.types.NeovimApiInfo
@@ -103,7 +104,7 @@ class RpcTest {
             runBlocking {
                 rpc.request(
                     "nvim_fancy_future",
-                    requiredApiLevel = 99
+                    methodInfo = requiredApiLevel(99)
                 )
             }
         }.thrownError {
@@ -123,7 +124,7 @@ class RpcTest {
             runBlocking {
                 rpc.request(
                     "nvim_ancient",
-                    requiredApiLevel = 2
+                    methodInfo = requiredApiLevel(2)
                 )
             }
         }.thrownError {
@@ -141,7 +142,7 @@ class RpcTest {
 
         val response = rpc.request(
             "nvim_fancy_future",
-            requiredApiLevel = 5
+            methodInfo = requiredApiLevel(5)
         )
         assertThat(response).isNotNull()
     }
@@ -161,4 +162,10 @@ fun apiInfo(currentLevel: Int, compatLevel: Int = 1) = NeovimApiInfo(
         uiEvents = emptyList(),
         uiOptions = emptyList()
     )
+)
+
+fun requiredApiLevel(level: Int) = ApiMethodInfo(
+    name = "",
+    sinceVersion = level,
+    resultType = Unit::class.java
 )
