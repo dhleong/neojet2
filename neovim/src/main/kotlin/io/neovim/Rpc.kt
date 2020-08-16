@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
-
 package io.neovim
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
@@ -20,6 +18,7 @@ import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
 import kotlin.coroutines.CoroutineContext
 
@@ -33,9 +32,12 @@ fun log(message: String) = println("[${coroutineName()}] $message")
 
 const val DEFAULT_TIMEOUT_MS = 1500L
 
+private const val API_INFO_REQUEST_METHOD = "nvim_get_api_info"
+
 /**
  * @author dhleong
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class Rpc(
     private val channel: PacketsChannel,
     private val ids: IdAllocator = SimpleIdAllocator(),
@@ -65,13 +67,18 @@ class Rpc(
     private val availableResponses = mutableMapOf<Long, ResponsePacket>()
     private val outstandingRequests = mutableMapOf<Long, CompletableDeferred<ResponsePacket?>>()
 
-    private val packetProducer = launch(Dispatchers.IO) {
+    private val ioThread = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+
+    private val packetProducer = launch(ioThread) {
         val input = this@Rpc.channel
 
         while (job.isActive) {
             val packet = try {
-                input.readPacket()
-                    ?: continue // unknown packet; discard and try again
+                println("read packet ${Thread.currentThread()}...")
+                // NOTE: don't block our single io thread with this blocking read
+                withContext(Dispatchers.IO) {
+                    input.readPacket()
+                } ?: continue // unknown packet; discard and try again
             } catch (e: IOException) {
                 if (e is MismatchedInputException && !job.isActive) {
                     // the mapper is just upset that it got EOF before it
@@ -98,12 +105,18 @@ class Rpc(
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }
+//            if (packet is NeovimEvent) {
+//                allPackets.offer(packet)
+//            } else {
+//                allPackets.send(packet)
+//            }
             allPackets.send(packet)
+            println("sent $packet")
         }
     }
 
     private val outboundQueue = Channel<Packet>(capacity = 8)
-    private val packetSender = launch(Dispatchers.IO) {
+    private val packetSender = launch(ioThread) {
         val output = this@Rpc.channel
         for (packet in outboundQueue) {
             println(">> send $packet")
@@ -114,14 +127,14 @@ class Rpc(
     private val requestTypes = mutableMapOf<Long, Class<*>>()
 
     private val apiInfo by lazy {
-        val apiMethodInfo = ApiMethodInfo(
-            name = "nvim_get_api_info",
-            sinceVersion = 1,
-            deprecatedSinceVersion = -1,
-            resultType = NeovimApiInfo::class.java
-        )
         runBlocking {
-            request("nvim_get_api_info",
+            val apiMethodInfo = ApiMethodInfo(
+                name = API_INFO_REQUEST_METHOD,
+                sinceVersion = 1,
+                deprecatedSinceVersion = -1,
+                resultType = NeovimApiInfo::class.java
+            )
+            request(API_INFO_REQUEST_METHOD,
                 methodInfo = apiMethodInfo
             ).result as? NeovimApiInfo
         }
@@ -137,8 +150,15 @@ class Rpc(
             log("WARN: deprecated method use: $method is deprecated since API ${methodInfo.deprecatedSinceVersion}")
         }
 
+        // NOTE: ensure we always fetch api info as the first request; this
+        // seems to fix issues where responses to certain requests
+        // (esp: ui_attach with ext_tabline:true) don't get sent.
+        val info = if (method != API_INFO_REQUEST_METHOD) {
+            apiInfo
+        } else null
+
         if (requiredApiLevel > 1) {
-            apiInfo?.let {
+            info?.let {
                 val version = it.apiMetadata.version
                 if (version.apiLevel < requiredApiLevel) {
                     throw IncompatibleApiException(
@@ -304,12 +324,13 @@ class Rpc(
 
     override fun close() {
         job.cancel()
-        @Suppress("EXPERIMENTAL_API_USAGE")
+        ioThread.close()
         packetProducer.cancel()
         packetSender.cancel()
         channel.close()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend inline fun <reified T : Packet> firstPacketThat(
         crossinline matching: (packet: T) -> Boolean
     ): T? {

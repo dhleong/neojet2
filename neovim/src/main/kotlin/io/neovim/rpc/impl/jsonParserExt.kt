@@ -30,7 +30,7 @@ internal fun JsonParser.nextLong(): Long {
 }
 
 fun JsonParser.nextString(): String {
-    nextValue()
+    expectNext(JsonToken.VALUE_STRING)
     return valueAsString
 }
 

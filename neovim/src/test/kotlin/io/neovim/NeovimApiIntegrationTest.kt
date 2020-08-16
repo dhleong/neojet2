@@ -7,12 +7,19 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import io.neovim.events.NeovimEvent
+import io.neovim.events.Redraw
 import io.neovim.rpc.RequestPacket
 import io.neovim.rpc.channels.EmbeddedChannel
 import io.neovim.types.Buffer
 import io.neovim.types.IntPair
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.selects.whileSelect
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -28,7 +35,7 @@ class NeovimApiIntegrationTest {
 
     @Before fun setUp() {
         rpc = Rpc(EmbeddedChannel.Factory(
-            args = listOf("nvim", "-u", "NONE")
+            args = listOf("-u", "NONE")
         ).create())
         api = NeovimApi.create(rpc)
     }
@@ -105,7 +112,7 @@ class NeovimApiIntegrationTest {
 //        assertThat(attached).isTrue()
 //    }
 
-    @Test(timeout = 2000) fun `Neojet Open`() = runBlockingUnit {
+    @Test(timeout = 5000) fun `Neojet Open`() = runBlockingUnit {
         api.command("setlocal nolist")
         api.command("set laststatus=0")
         api.uiAttach(60, 25, mapOf(
@@ -116,10 +123,30 @@ class NeovimApiIntegrationTest {
         ))
 
         val fileToEdit = File("build.gradle")
-        api.command("noswapfile e! '${fileToEdit.absolutePath}'")
-        val event = api.nextEvent()
-        println("event = $event")
-    }
+        coroutineScope {
+            val events = async {
+                while (isActive) {
+                    val event = api.nextEvent()
+                    assertThat(event).isNotNull()
+                    println("event = $event")
+                }
+            }
 
+            listOf(
+                async {
+                    api.command("noswapfile e! '${fileToEdit.absolutePath}'")
+                    events.cancel()
+                },
+
+                async {
+                    delay(100)
+                    val output = api.commandOutput("echo 'test'")
+                    println("OUTPUT = $output")
+                }
+
+            )
+        }.awaitAll()
+    }
 }
+
 

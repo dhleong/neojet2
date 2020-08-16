@@ -11,8 +11,10 @@ import io.neovim.events.Redraw
 import io.neovim.events.createEventTypesMap
 import io.neovim.rpc.impl.*
 import org.msgpack.jackson.dataformat.MessagePackFactory
-import java.io.EOFException
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.StringWriter
+import java.io.Writer
 
 /**
  * @author dhleong
@@ -54,14 +56,23 @@ private class ObjectMapperModule(
 
     private inner class PacketDeserializer : JsonDeserializer<Packet>() {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Packet? {
+            println("read packet... (${p.currentToken()})")
             p.expectNext(JsonToken.VALUE_NUMBER_INT)
 
             val type = Packet.Type.create(p.intValue)
-            return when (type) {
+            println("read ($type)...")
+            val packet = when (type) {
                 Packet.Type.REQUEST -> p.readRequest()
                 Packet.Type.RESPONSE -> p.readResponse()
                 Packet.Type.NOTIFICATION -> p.readNotification()
             }
+
+            println("read ${packet?.type}; current=${p.currentToken()}")
+//            if (p.currentToken() == JsonToken.END_ARRAY) {
+//                p.clearCurrentToken()
+//            }
+
+            return packet
         }
 
         private fun JsonParser.readRequest(): Packet = RequestPacket(
@@ -91,7 +102,16 @@ private class ObjectMapperModule(
             if (name == "redraw") {
                 // redraw is a special case; it has a single argument that is
                 // an array of `[eventType, [argTuple, ...]]` tuples
-                return readRedraw()
+
+                expectNext(JsonToken.START_ARRAY)
+                val tree = readValueAsTree<TreeNode>()
+                println(codec.treeAsTokens(tree).readValueAs(List::class.java))
+
+//                expectNext(JsonToken.END_ARRAY)
+                println("CURRENT=${currentToken()}")
+
+                val treeParser = codec.treeAsTokens(tree)
+                return treeParser.readRedraw()
             }
 
             val type = eventsMap[name]
@@ -125,39 +145,46 @@ private class ObjectMapperModule(
                     break
                 }
 
-                val name = nextString()
-                val type = eventsMap[name]
-                println("REDRAW: $name -> $type")
-                if (type == null) {
-                    // skip unknown events
-                    while (nextToken() == JsonToken.START_ARRAY) {
-                        skipChildren()
-                    }
-                    continue
-                }
-
-                while (true) {
-                    val next = nextToken()
-                    if (next == JsonToken.END_ARRAY) {
-                        println("endArray")
-                        break
-                    }
-
-                    expect(JsonToken.START_ARRAY)
-                    val subEvent = readEventValue(type)
-                    if (subEvent == null) {
-                        // no more
-                        println("No more $type")
-                        break
-                    }
-                    println("subEvent = $subEvent")
-                    contents.add(subEvent)
-                }
-                expect(JsonToken.END_ARRAY)
+                readRedrawSubEvent(contents)
+//                expectNext(JsonToken.END_ARRAY)
             }
 
             expect(JsonToken.END_ARRAY)
             return Redraw(contents)
+        }
+
+        private fun JsonParser.readRedrawSubEvent(
+            contents: MutableList<NeovimEvent>
+        ) {
+            val name = nextString()
+            val type = eventsMap[name]
+//            println("REDRAW: $name -> $type")
+            if (type == null) {
+                // skip unknown events
+                while (nextToken() == JsonToken.START_ARRAY) {
+                    skipChildren()
+                }
+                return
+            }
+
+            while (true) {
+                val next = nextToken()
+                if (next == JsonToken.END_ARRAY || next == null) {
+//                    println("endArray")
+                    break
+                }
+
+                expect(JsonToken.START_ARRAY)
+                val subEvent = readEventValue(type)
+                if (subEvent == null) {
+                    // no more
+                    println("No more $type")
+                    break
+                }
+//                println("subEvent = $subEvent")
+                contents += subEvent
+            }
+            expect(JsonToken.END_ARRAY)
         }
 
         private fun JsonParser.readEventValue(
@@ -187,7 +214,7 @@ private class ObjectMapperModule(
                 // skip the empty array...
                 expectNext(JsonToken.START_ARRAY)
                 skipChildren()
-                nextToken()
+                expectNext(JsonToken.END_ARRAY)
 
                 // ... and use the singleton
                 instance

@@ -2,6 +2,7 @@ package io.neovim
 
 import io.neovim.rpc.Packet
 import io.neovim.rpc.PacketsChannel
+import io.neovim.rpc.ResponsePacket
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.runBlocking

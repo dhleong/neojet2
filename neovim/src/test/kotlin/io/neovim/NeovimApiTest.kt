@@ -32,7 +32,7 @@ class NeovimApiTest {
     }
 
     @Test fun `Methods proxy`() = runBlockingUnit {
-        packets.enqueueIncoming(ResponsePacket(requestId = 0, result = "mreynolds"))
+        packets.enqueueIncoming(ResponsePacket(requestId = 1, result = "mreynolds"))
 
         assertThat(api.getCurrentLine()).isEqualTo("mreynolds")
 
