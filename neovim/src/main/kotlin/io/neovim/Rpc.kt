@@ -32,7 +32,7 @@ fun log(message: String) = println("[${coroutineName()}] $message")
 
 const val DEFAULT_TIMEOUT_MS = 1500L
 
-private const val API_INFO_REQUEST_METHOD = "nvim_get_api_info"
+const val NVIM_API_INFO_REQUEST_METHOD = "nvim_get_api_info"
 
 /**
  * @author dhleong
@@ -126,17 +126,10 @@ class Rpc(
 
     private val requestTypes = mutableMapOf<Long, Class<*>>()
 
+    private val apiInfoMutex = Mutex()
     private val apiInfo by lazy {
         runBlocking {
-            val apiMethodInfo = ApiMethodInfo(
-                name = API_INFO_REQUEST_METHOD,
-                sinceVersion = 1,
-                deprecatedSinceVersion = -1,
-                resultType = NeovimApiInfo::class.java
-            )
-            request(API_INFO_REQUEST_METHOD,
-                methodInfo = apiMethodInfo
-            ).result as? NeovimApiInfo
+            requestApiInfo()
         }
     }
 
@@ -153,9 +146,11 @@ class Rpc(
         // NOTE: ensure we always fetch api info as the first request; this
         // seems to fix issues where responses to certain requests
         // (esp: ui_attach with ext_tabline:true) don't get sent.
-        val info = if (method != API_INFO_REQUEST_METHOD) {
-            apiInfo
-        } else null
+        val info = apiInfoMutex.withLock {
+            if (method != NVIM_API_INFO_REQUEST_METHOD) {
+                apiInfo
+            } else null
+        }
 
         if (requiredApiLevel > 1) {
             info?.let {
@@ -173,6 +168,15 @@ class Rpc(
                 }
             }
         }
+
+        return performRequest(method, args, methodInfo)
+    }
+
+    private suspend fun performRequest(
+        method: String,
+        args: Any? = emptyList<Any?>(),
+        methodInfo: ApiMethodInfo? = null
+    ): ResponsePacket {
 
         val request = RequestPacket(
             requestId = ids.next(),
@@ -378,6 +382,16 @@ class Rpc(
 
     internal fun getExpectedTypeForRequest(requestId: Long): Class<*>? =
         requestTypes.remove(requestId)
+
+    private suspend fun requestApiInfo(): NeovimApiInfo? =
+        performRequest(NVIM_API_INFO_REQUEST_METHOD,
+            methodInfo = ApiMethodInfo(
+                name = NVIM_API_INFO_REQUEST_METHOD,
+                sinceVersion = 1,
+                deprecatedSinceVersion = -1,
+                resultType = NeovimApiInfo::class.java
+            )
+        ).result as? NeovimApiInfo
 
     companion object {
         fun create(

@@ -30,55 +30,55 @@ class RpcTest {
     }
 
     @Test fun `Request waits for correct response`() = runBlocking {
+        packets.enqueueIncoming(ResponsePacket(requestId = 2))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
-        packets.enqueueIncoming(ResponsePacket(requestId = 0))
         val response = rpc.request("test")
-        assertThat(response).hasRequestId(0)
+        assertThat(response).hasRequestId(1)
     }
 
     @Suppress("DeferredResultUnused")
     @Test(timeout = 200) fun `Interleaved responses go to the right requestor`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(requestId = 2))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
-        packets.enqueueIncoming(ResponsePacket(requestId = 0))
-
-        coroutineScope {
-            val response = rpc.request("test0")
-            assertThat(response).hasRequestId(0)
-        }
 
         coroutineScope {
             val response = rpc.request("test1")
             assertThat(response).hasRequestId(1)
         }
+
+        coroutineScope {
+            val response = rpc.request("test2")
+            assertThat(response).hasRequestId(2)
+        }
     }
 
     @Suppress("DeferredResultUnused")
-    @Test(timeout = 200) fun `Interleaved responses go to the right requestor async`() = runBlockingUnit {
+    @Test(timeout = 1000) fun `Interleaved responses go to the right requestor async`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(requestId = 2))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
-        packets.enqueueIncoming(ResponsePacket(requestId = 0))
 
         coroutineScope {
             async {
-                val response = rpc.request("test0")
-                assertThat(response).hasRequestId(0)
+                val response = rpc.request("test1")
+                assertThat(response).hasRequestId(1)
             }
 
             async {
-                val response = rpc.request("test1")
-                assertThat(response).hasRequestId(1)
+                val response = rpc.request("test2")
+                assertThat(response).hasRequestId(2)
             }
         }
     }
 
     @Suppress("DeferredResultUnused")
     @Test(timeout = 200) fun `Packets buffer if there's nobody to consume`() = runBlockingUnit {
+        packets.enqueueIncoming(ResponsePacket(requestId = 2))
         packets.enqueueIncoming(ResponsePacket(requestId = 1))
-        packets.enqueueIncoming(ResponsePacket(requestId = 0))
 
         coroutineScope {
             async {
-                val response = rpc.request("test0")
-                assertThat(response).hasRequestId(0)
+                val response = rpc.request("test1")
+                assertThat(response).hasRequestId(1)
             }
 
             // due to this delay, the test1 packet might
@@ -86,8 +86,8 @@ class RpcTest {
             delay(50)
 
             async {
-                val response = rpc.request("test1")
-                assertThat(response).hasRequestId(1)
+                val response = rpc.request("test2")
+                assertThat(response).hasRequestId(2)
             }
         }
     }
