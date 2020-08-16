@@ -41,7 +41,8 @@ const val NVIM_API_INFO_REQUEST_METHOD = "nvim_get_api_info"
 class Rpc(
     private val channel: PacketsChannel,
     private val ids: IdAllocator = SimpleIdAllocator(),
-    private val responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS
+    private val responseTimeoutMillis: Long = DEFAULT_TIMEOUT_MS,
+    private val debug: Boolean = false
 ) : AutoCloseable, CoroutineScope {
 
     constructor(
@@ -74,7 +75,7 @@ class Rpc(
 
         while (job.isActive) {
             val packet = try {
-                println("read packet ${Thread.currentThread()}...")
+                debugLog("read packet ${Thread.currentThread()}...")
                 // NOTE: don't block our single io thread with this blocking read
                 withContext(Dispatchers.IO) {
                     input.readPacket()
@@ -90,7 +91,7 @@ class Rpc(
                 break
             }
 
-            println("<< read $packet")
+            debugLog("<< read $packet")
 
             if (packet is ResponsePacket) {
                 val outstanding = outstandingRequests[packet.requestId]
@@ -105,13 +106,9 @@ class Rpc(
             availablePacketsLock.withLock {
                 availablePackets.add(packet)
             }
-//            if (packet is NeovimEvent) {
-//                allPackets.offer(packet)
-//            } else {
-//                allPackets.send(packet)
-//            }
+
             allPackets.send(packet)
-            println("sent $packet")
+            debugLog("sent $packet")
         }
     }
 
@@ -119,7 +116,7 @@ class Rpc(
     private val packetSender = launch(ioThread) {
         val output = this@Rpc.channel
         for (packet in outboundQueue) {
-            println(">> send $packet")
+            debugLog(">> send $packet")
             output.writePacket(packet)
         }
     }
@@ -212,7 +209,7 @@ class Rpc(
             }
         }
 
-        println("start timer($responseTimeoutMillis) for $method @ ${request.requestId}")
+        debugLog("start timer($responseTimeoutMillis) for $method @ ${request.requestId}")
         return withTimeoutOrNull(responseTimeoutMillis) {
             awaitResponseTo(method, request.requestId)
         } ?: throw TimeoutException(
@@ -392,6 +389,10 @@ class Rpc(
                 resultType = NeovimApiInfo::class.java
             )
         ).result as? NeovimApiInfo
+
+    private fun debugLog(message: String) {
+        if (debug) log(message)
+    }
 
     companion object {
         fun create(
