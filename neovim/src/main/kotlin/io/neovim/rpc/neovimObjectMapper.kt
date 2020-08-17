@@ -105,10 +105,9 @@ private class ObjectMapperModule(
 
                 expectNext(JsonToken.START_ARRAY)
                 val tree = readValueAsTree<TreeNode>()
-                println(codec.treeAsTokens(tree).readValueAs(List::class.java))
 
-//                expectNext(JsonToken.END_ARRAY)
-                println("CURRENT=${currentToken()}")
+//                println(codec.treeAsTokens(tree).readValueAs(List::class.java))
+//                println("CURRENT=${currentToken()}")
 
                 val treeParser = codec.treeAsTokens(tree)
                 return treeParser.readRedraw()
@@ -133,7 +132,6 @@ private class ObjectMapperModule(
 
             val contents = mutableListOf<NeovimEvent>()
 
-            println("START redraw array")
             while (true) {
                 val startSubEventToken = try {
                     nextToken()
@@ -146,7 +144,6 @@ private class ObjectMapperModule(
                 }
 
                 readRedrawSubEvent(contents)
-//                expectNext(JsonToken.END_ARRAY)
             }
 
             expect(JsonToken.END_ARRAY)
@@ -158,7 +155,6 @@ private class ObjectMapperModule(
         ) {
             val name = nextString()
             val type = eventsMap[name]
-//            println("REDRAW: $name -> $type")
             if (type == null) {
                 // skip unknown events
                 while (nextToken() == JsonToken.START_ARRAY) {
@@ -170,7 +166,6 @@ private class ObjectMapperModule(
             while (true) {
                 val next = nextToken()
                 if (next == JsonToken.END_ARRAY || next == null) {
-//                    println("endArray")
                     break
                 }
 
@@ -181,7 +176,6 @@ private class ObjectMapperModule(
                     println("No more $type")
                     break
                 }
-//                println("subEvent = $subEvent")
                 contents += subEvent
             }
             expect(JsonToken.END_ARRAY)
